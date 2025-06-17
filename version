@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+import glob
+import os
+import subprocess
+import sys
+from typing import List
+
+
+def die(msg: str):
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def cmd_exec(cmd: List[str]) -> str:
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        die(f"Error: Failed to execute command: {' '.join(cmd)}\n{result.stderr}")
+    return result.stdout.strip()
+
+
+def check_git_status():
+    stdout = cmd_exec(["git", "status", "--porcelain"])
+    if len(stdout) > 0:
+        die("Error: There are uncommitted changes. Please commit or stash them before proceeding.")
+
+    stdout = cmd_exec(["git", "tag", "--points-at", "HEAD"])
+    if len(stdout) > 0:
+        die("Error: HEAD is already tagged.")
+
+    branch = cmd_exec(["git", "branch", "--show-current"])
+    if branch != "main":
+        die("Error: You must be on the main branch to update the version.")
+
+
+def get_version_from_py_module() -> str:
+    from cli import elo
+    with open(elo.__file__, "r") as f:
+        for line in f:
+            if line.startswith("__version__ = "):
+                version = line.strip().split('=')[1].strip().strip('"').strip("'")
+                return version
+
+    die("Error: Could not find version in Python module.")
+
+
+def set_version_in_py_module(version: str):
+    from cli import elo
+    with open(elo.__file__, "r") as f:
+        lines = f.readlines()
+
+    for i, line in enumerate(lines):
+        if line.startswith("__version__ = "):
+            lines[i] = f"__version__ = '{version}'\n"
+            break
+
+    with open(elo.__file__, "w") as f:
+        f.writelines(lines)
+
+
+def get_version_from_pom_xml(pom_file: str) -> str:
+    with open(pom_file, "r") as f:
+        lines = f.readlines()
+
+    version = None
+
+    for line in lines:
+        if "<version>" in line:
+            version = line.strip().replace("<version>", "").replace("</version>", "").strip()
+            break
+
+    if version is None:
+        die(f"Error: Could not find version in {pom_file}.")
+
+    return version
+
+
+def set_version_in_pom_xml(pom_file: str, version: str):
+    with open(pom_file, "r") as f:
+        lines = f.readlines()
+
+    for i, line in enumerate(lines):
+        if "<version>" in line:
+            lines[i] = line[:line.find("<version>")] + f"<version>{version}</version>\n"
+            break
+
+    with open(pom_file, "w") as f:
+        f.writelines(lines)
+
+
+def update_version(part: str) -> str:
+    # search all pom.xml files
+    workdir = os.path.dirname(__file__)
+    pom_files = glob.glob(os.path.join(workdir, "**", "pom.xml"), recursive=True)
+
+    if len(pom_files) == 0:
+        die("Error: No pom.xml files found.")
+
+    # Check all versions are the same
+    versions = set()
+    for pom_file in pom_files:
+        version = get_version_from_pom_xml(pom_file)
+        versions.add(version)
+
+    if len(versions) > 1:
+        die("Error: Multiple versions found in pom.xml files.")
+
+    version = versions.pop()
+
+    # Check if version is the same as in Python module
+    py_version = get_version_from_py_module()
+    if version != py_version:
+        die(f"Error: Version in Python module ({py_version}) does not match version in pom.xml files ({version}).")
+
+    # Update version
+    major, minor, patch = version.split(".")
+
+    if part == "major":
+        major = str(int(major) + 1)
+        minor = "0"
+        patch = "0"
+    elif part == "minor":
+        minor = str(int(minor) + 1)
+        patch = "0"
+    elif part == "patch":
+        patch = str(int(patch) + 1)
+    else:
+        die("Error: Invalid version part.")
+
+    new_version = f"{major}.{minor}.{patch}"
+
+    for pom_file in pom_files:
+        set_version_in_pom_xml(pom_file, new_version)
+
+    set_version_in_py_module(new_version)
+
+    return new_version
+
+
+def git_tag(version: str):
+    cmd_exec(["git", "add", "."])
+    cmd_exec(["git", "commit", "-m", f"v{version}"])
+    cmd_exec(["git", "tag", f"v{version}"])
+
+
+def main():
+    args = sys.argv[1:]
+
+    if len(args) != 1 or args[0] not in ["major", "minor", "patch"]:
+        print("Usage: python3 version [major|minor|patch]")
+        sys.exit(1)
+
+    get_version_from_py_module()
+
+    check_git_status()
+    version = update_version(args[0])
+    git_tag(version)
+
+    print(f"Tag v{version} created.")
+
+
+if __name__ == '__main__':
+    main()
