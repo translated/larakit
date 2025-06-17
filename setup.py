@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="lara-kit",
-    version="1.0.0",
+    version="0.0.1",
     description="Lara Kit for Python",
     python_requires='>=3.8',
     packages=find_packages(),
