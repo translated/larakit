@@ -6,8 +6,8 @@ from typing import Optional, List
 class Language:
     language: str
     tag: str
-    script: str
-    region: str
+    region: Optional[str] = None
+    script: Optional[str] = None
 
     @staticmethod
     def _to_title_case(string: str) -> str:
@@ -49,8 +49,8 @@ class Language:
             raise ValueError("Input string must not be empty")
 
         language: Optional[str] = None
-        script: Optional[str] = None
         region: Optional[str] = None
+        script: Optional[str] = None
         tag_parts: List[str] = []
 
         skip: bool = False
@@ -84,7 +84,7 @@ class Language:
             raise ValueError(f"Language subtag missing in '{string}'")
 
         tag: str = '-'.join(tag_parts)
-        return cls(language, tag, script, region)
+        return cls(language=language, tag=tag, region=region, script=script)
 
     def code(self) -> str:
         return self.language
