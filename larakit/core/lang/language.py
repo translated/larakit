@@ -89,8 +89,10 @@ class Language:
     def code(self) -> str:
         return self.language
 
-    def region(self) -> Optional[str]:
-        return self.region
+    def code_script(self) -> str:
+        if self.script:
+            return f"{self.language}-{self.script}"
+        return self.language
 
     def is_language_only(self) -> bool:
         return self.language == self.tag
