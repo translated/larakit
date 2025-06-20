@@ -4,9 +4,9 @@ from typing import Optional, List, Tuple
 class Language:
     def __init__(self, code: str, tag: str, region: Optional[str] = None, script: Optional[str] = None):
         if not code or not isinstance(code, str):
-            raise ValueError("Language must be a non-empty string")
+            raise ValueError("code must be a non-empty string")
         if not tag or not isinstance(tag, str):
-            raise ValueError("Tag must be a non-empty string")
+            raise ValueError("tag must be a non-empty string")
 
         self._code = code
         self._tag = tag
@@ -133,12 +133,17 @@ class Language:
 
 
 class LanguageDirection:
-    source: Language
-    target: Language
-
     def __init__(self, source: Language, target: Language):
-        self.source = source
-        self.target = target
+        self._source = source
+        self._target = target
+
+    @property
+    def source(self) -> Language:
+        return self._source
+
+    @property
+    def target(self) -> Language:
+        return self._target
 
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
