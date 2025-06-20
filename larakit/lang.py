@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Optional, List, Tuple
 
 
-@dataclass
 class Language:
     _code: str
     _tag: str
