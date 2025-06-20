@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Optional, List, Tuple
 
 
@@ -138,10 +137,13 @@ class Language:
         return self.tag
 
 
-@dataclass
 class LanguageDirection:
     source: Language
     target: Language
+
+    def __init__(self, source: Language, target: Language):
+        self.source = source
+        self.target = target
 
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
