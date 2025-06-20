@@ -2,11 +2,6 @@ from typing import Optional, List, Tuple
 
 
 class Language:
-    _code: str
-    _tag: str
-    _region: Optional[str] = None
-    _script: Optional[str] = None
-
     def __init__(self, code: str, tag: str, region: Optional[str] = None, script: Optional[str] = None):
         if not code or not isinstance(code, str):
             raise ValueError("Language must be a non-empty string")
