@@ -4,14 +4,25 @@ from typing import Optional, List, Tuple
 
 @dataclass
 class Language:
-    language: str
-    tag: str
-    region: Optional[str] = None
-    script: Optional[str] = None
+    _code: str
+    _tag: str
+    _region: Optional[str] = None
+    _script: Optional[str] = None
+
+    def __init__(self, code: str, tag: str, region: Optional[str] = None, script: Optional[str] = None):
+        if not code or not isinstance(code, str):
+            raise ValueError("Language must be a non-empty string")
+        if not tag or not isinstance(tag, str):
+            raise ValueError("Tag must be a non-empty string")
+
+        self._code = code
+        self._tag = tag
+        self._region = region
+        self._script = script
 
     @staticmethod
     def get_chinese_script(language: 'Language') -> str:
-        if language.code() != 'zh':
+        if language.code != 'zh':
             raise ValueError("Language must be Chinese (zh) to parse script")
 
         if language.script in ('Hans', 'Hant'):
@@ -58,7 +69,7 @@ class Language:
         if not string:
             raise ValueError("Input string must not be empty")
 
-        language: Optional[str] = None
+        code: Optional[str] = None
         region: Optional[str] = None
         script: Optional[str] = None
         tag_parts: List[str] = []
@@ -67,10 +78,10 @@ class Language:
         chunks: List[str] = string.replace('_', '-').split('-')
         for i, chunk in enumerate(chunks):
             if i == 0:
-                language = Language._parse_language(chunk)
-                if language is None:
+                code = Language._parse_language(chunk)
+                if code is None:
                     raise ValueError(f"Invalid language subtag: '{chunk}' in '{string}'")
-                tag_parts.append(language)
+                tag_parts.append(code)
             else:
                 if not skip:
                     if i == 1 and script is None:
@@ -90,20 +101,36 @@ class Language:
                 skip = True
                 tag_parts.append(chunk)
 
-        if language is None:
+        if code is None:
             raise ValueError(f"Language subtag missing in '{string}'")
 
         tag: str = '-'.join(tag_parts)
-        return cls(language=language, tag=tag, region=region, script=script)
+        return cls(code=code, tag=tag, region=region, script=script)
 
+    @property
     def code(self) -> str:
-        return self.language
+        return self._code
+
+    @property
+    def tag(self) -> str:
+        return self._tag
+
+    @property
+    def region(self) -> Optional[str]:
+        return self._region
+
+    @property
+    def script(self) -> Optional[str]:
+        return self._script
 
     def is_language_only(self) -> bool:
-        return self.language == self.tag
+        return self.code == self.tag
 
     def as_language_only(self) -> 'Language':
-        return self if self.is_language_only() else Language.from_string(self.code())
+        return self if self.is_language_only() else Language.from_string(self.code)
+
+    def __eq__(self, other: 'Language') -> bool:
+        return self.tag == other.tag
 
     def __hash__(self) -> int:
         return hash(self.tag)
