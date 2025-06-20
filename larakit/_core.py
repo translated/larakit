@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Dict
 
 
 class Namespace(object):
@@ -9,9 +10,15 @@ class Namespace(object):
 
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
-            self._internal_set(key, value)
+            self.set(key, value)
 
-    def _assign(self, key, value):
+    def get(self, key, default=None):
+        return self.__dict__.get(key, default)
+
+    def __getattr__(self, key):
+        return self.get(key)
+
+    def set(self, key, value):
         def parse(val):
             if isinstance(val, dict):
                 return Namespace(**val)
@@ -21,17 +28,8 @@ class Namespace(object):
 
         super().__setattr__(key, parse(value))
 
-    def get(self, key, default=None):
-        return self.__dict__.get(key, default)
-
-    def __getattr__(self, key):
-        return self.get(key)
-
-    def set(self, key, value):
-        self._assign(key, value)
-
     def __setattr__(self, key, value):
-        self._assign(key, value)
+        self.set(key, value)
 
     def has(self, key):
         return key in self.__dict__
@@ -45,15 +43,16 @@ class Namespace(object):
     def __str__(self):
         return repr(self)
 
-    def to_json(self):
-        def _convert(value):
-            if isinstance(value, Namespace):
-                return value.to_json()
-            elif isinstance(value, list):
-                return [_convert(v) for v in value]
-            return value
+    @staticmethod
+    def _convert(value):
+        if isinstance(value, Namespace):
+            return value.to_json()
+        elif isinstance(value, list):
+            return [Namespace._convert(v) for v in value]
+        return value
 
-        return {key: _convert(value) for key, value in self.__dict__.items()}
+    def to_json(self):
+        return {key: Namespace._convert(value) for key, value in self.__dict__.items()}
 
 
 class StatefulNamespace(Namespace):
@@ -62,28 +61,36 @@ class StatefulNamespace(Namespace):
         self.__path = path
         self.__autosave = autosave
 
-        if os.path.isfile(self.path):
-            with open(self.path, 'r', encoding='utf-8') as f_input:
+        if os.path.isfile(self.__path):
+            with open(self.__path, 'r', encoding='utf-8') as f_input:
                 data = json.load(f_input)
                 for key, value in data.items():
-                    self._assign(key, value)
+                    super().set(key, value)
         else:
             for key, value in default_kwargs.items():
-                self._assign(key, value)
+                super().set(key, value)
 
         if self.__autosave:
             self.save()
 
     def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-        if self.__autosave:
-            self.save()
+        self.set(key, value)
 
     def set(self, key, value):
         super().set(key, value)
         if self.__autosave:
             self.save()
 
+    def _get_dict(self) -> Dict:
+        return {key: value for key, value in self.__dict__.items() if
+                not key.startswith(f'_{self.__class__.__name__}__')}
+
     def save(self) -> None:
-        with open(self.path, 'w', encoding='utf-8') as f_output:
-            f_output.write(json.dumps(self.namespace.to_json(), indent=2, sort_keys=True))
+        with open(self.__path, 'w', encoding='utf-8') as f_output:
+            f_output.write(json.dumps(self.to_json(), indent=2, sort_keys=True))
+
+    def to_json(self):
+        return {key: Namespace._convert(value) for key, value in self._get_dict().items()}
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}{self._get_dict()}'
