@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 
 @dataclass
@@ -8,6 +8,16 @@ class Language:
     tag: str
     region: Optional[str] = None
     script: Optional[str] = None
+
+    @staticmethod
+    def get_chinese_script(language: 'Language') -> str:
+        if language.code() != 'zh':
+            raise ValueError("Language must be Chinese (zh) to parse script")
+
+        if language.script in ('Hans', 'Hant'):
+            return language.script
+
+        return 'Hans' if language.region is None or language.region in ('CN', 'SG') else 'Hant'
 
     @staticmethod
     def _to_title_case(string: str) -> str:
@@ -89,11 +99,6 @@ class Language:
     def code(self) -> str:
         return self.language
 
-    def code_script(self) -> str:
-        if self.script:
-            return f"{self.language}-{self.script}"
-        return self.language
-
     def is_language_only(self) -> bool:
         return self.language == self.tag
 
@@ -105,3 +110,15 @@ class Language:
 
     def __str__(self):
         return self.tag
+
+
+@dataclass
+class LanguageDirection:
+    source: Language
+    target: Language
+
+    @classmethod
+    def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
+        if len(language) != 2:
+            raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
+        return cls(source=Language.from_string(language[0]), target=Language.from_string(language[1]))

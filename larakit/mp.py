@@ -3,7 +3,7 @@ import threading
 from queue import Queue
 
 
-def mp_apply(generator, fn, pool_init=None, pool_init_args=None, batch_size=1, ordered=True, threads=None):
+def apply(generator, fn, pool_init=None, pool_init_args=None, batch_size=1, ordered=True, threads=None):
     cores = threads or multiprocessing.cpu_count()
 
     def loader(generator_, jobs_):

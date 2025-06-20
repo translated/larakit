@@ -1,6 +1,7 @@
 import math
+import random
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import Iterable, Any, List
 
 
 @dataclass
@@ -19,12 +20,30 @@ class Sequence:
         self.sum2 += other.sum2
         self.length += other.length
 
-    def compute(self) -> Tuple[float, float]:
+    @property
+    def mean(self) -> float:
         if self.length == 0:
-            return math.nan, math.nan
-        if self.length == 1:
-            return self.sum, math.nan
+            return math.nan
+        return self.sum / self.length
+
+    @property
+    def stddev(self) -> float:
+        if self.length <= 1:
+            return math.nan
 
         avg = self.sum / self.length
         stddev = math.sqrt((self.sum2 / self.length) - (avg ** 2))
-        return avg, stddev
+        return stddev
+
+
+def reservoir_sampling(stream: Iterable[Any], size: int) -> List[Any]:
+    result = []
+    for i, tu in enumerate(stream):
+        if i < size:
+            result.append(tu)
+        else:
+            j = random.randint(0, i)
+            if j < size:
+                result[j] = tu
+
+    return result
