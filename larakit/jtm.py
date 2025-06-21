@@ -65,7 +65,7 @@ class JTMReader:
             raise IOError("Reader is not open.")
 
         for line in self._file:
-            if not line.startswith(".footer"):
+            if not line.startswith(JTM.Footer.FOOTER_LINE_BEGIN):
                 yield TU.from_json(json.loads(line))
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -105,7 +105,7 @@ class JTM:
         _counter: Counter[LanguageDirection] = field(default=None)
         _properties: Optional[Properties] = field(default=None)
 
-        _FOOTER_LINE_BEGIN = ".footer"
+        FOOTER_LINE_BEGIN = ".footer"
 
         def __post_init__(self):
             if self.counter is None:
@@ -113,8 +113,8 @@ class JTM:
 
         @classmethod
         def parse(cls, line: str) -> 'JTM.Footer':
-            if line.startswith(cls._FOOTER_LINE_BEGIN):
-                json_part = line[len(cls._FOOTER_LINE_BEGIN):].strip()
+            if line.startswith(cls.FOOTER_LINE_BEGIN):
+                json_part = line[len(cls.FOOTER_LINE_BEGIN):].strip()
                 return cls.from_json(json.loads(json_part))
             else:
                 raise ValueError("The final line does not start with the expected '.footer' prefix.")
@@ -150,7 +150,7 @@ class JTM:
             return data
 
         def __str__(self) -> str:
-            return f"{JTM.Footer._FOOTER_LINE_BEGIN}{json.dumps(self.to_json())}"
+            return f"{JTM.Footer.FOOTER_LINE_BEGIN}{json.dumps(self.to_json())}"
 
     _path: str
     _datasource_key: str = field(init=False)
