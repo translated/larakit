@@ -150,3 +150,6 @@ class LanguageDirection:
         if len(language) != 2:
             raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
         return cls(source=Language.from_string(language[0]), target=Language.from_string(language[1]))
+
+    def to_json(self) -> Tuple[str, str]:
+        return self.source.tag, self.target.tag
