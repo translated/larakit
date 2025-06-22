@@ -1,11 +1,11 @@
 import json
 import os
-from typing import Dict
+from typing import Dict, Any
 
 
-class Namespace(object):
+class Namespace:
     @classmethod
-    def from_json_string(cls, json_string):
+    def from_json_string(cls, json_string: str) -> 'Namespace':
         return cls(**json.loads(json_string))
 
     def __init__(self, **kwargs):
@@ -41,28 +41,27 @@ class Namespace(object):
         return f'{self.__class__.__name__}{self.__dict__}'
 
     def __str__(self):
-        return repr(self)
+        return str(self.to_json())
 
-    @staticmethod
-    def _convert(value):
-        if isinstance(value, Namespace):
-            return value.to_json()
-        elif isinstance(value, list):
-            return [Namespace._convert(v) for v in value]
-        return value
+    def to_json(self) -> Dict[str, Any]:
+        def _to_json(value):
+            if isinstance(value, Namespace):
+                return value.to_json()
+            elif isinstance(value, list):
+                return [_to_json(v) for v in value]
+            return value
 
-    def to_json(self):
-        return {key: Namespace._convert(value) for key, value in self.__dict__.items()}
+        return {key: _to_json(value) for key, value in self.__dict__.items() if not key.startswith('_')}
 
 
 class StatefulNamespace(Namespace):
     def __init__(self, path: str, autosave: bool = False, **default_kwargs):
-        super().__init__(**default_kwargs)
-        self.__path = path
-        self.__autosave = autosave
+        super().__init__()
+        self._path = path
+        self._autosave = autosave
 
-        if os.path.isfile(self.__path):
-            with open(self.__path, 'r', encoding='utf-8') as f_input:
+        if os.path.isfile(self._path):
+            with open(self._path, 'r', encoding='utf-8') as f_input:
                 data = json.load(f_input)
                 for key, value in data.items():
                     super().set(key, value)
@@ -70,7 +69,7 @@ class StatefulNamespace(Namespace):
             for key, value in default_kwargs.items():
                 super().set(key, value)
 
-        if self.__autosave:
+        if self._autosave:
             self.save()
 
     def __setattr__(self, key, value):
@@ -78,19 +77,23 @@ class StatefulNamespace(Namespace):
 
     def set(self, key, value):
         super().set(key, value)
-        if self.__autosave:
+        if self._autosave:
             self.save()
 
-    def _get_dict(self) -> Dict:
-        return {key: value for key, value in self.__dict__.items() if
-                not key.startswith(f'_{self.__class__.__name__}__')}
+    def save(self, indent: int = 2, sort_keys: bool = True):
+        print('SAVE')
+        with open(self._path, 'w', encoding='utf-8') as f_output:
+            f_output.write(json.dumps(self.to_json(), indent=indent, sort_keys=sort_keys))
 
-    def save(self) -> None:
-        with open(self.__path, 'w', encoding='utf-8') as f_output:
-            f_output.write(json.dumps(self.to_json(), indent=2, sort_keys=True))
 
-    def to_json(self):
-        return {key: Namespace._convert(value) for key, value in self._get_dict().items()}
+if __name__ == '__main__':
+    # Example usage
+    # ns = StatefulNamespace('/Users/davide/workspace/larakit/test.json', key1='value1', key2={'inner': 'value2'}, list1=['item1', 'item2'])
+    ns = StatefulNamespace('/Users/davide/workspace/larakit/test.json', autosave=True)
+    ns._private_value = 'private'
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}{self._get_dict()}'
+    print(ns)
+    ns.new_value = 'new_value'
+    print(ns)
+
+    print(json.dumps(ns.to_json()))
