@@ -8,10 +8,10 @@ class Language:
         if not tag or not isinstance(tag, str):
             raise ValueError("tag must be a non-empty string")
 
-        self._code = code
-        self._tag = tag
-        self._region = region
-        self._script = script
+        self._code: str = code
+        self._tag: str = tag
+        self._region: Optional[str] = region
+        self._script: Optional[str] = script
 
     @staticmethod
     def get_chinese_script(language: 'Language') -> str:
@@ -122,6 +122,19 @@ class Language:
     def as_language_only(self) -> 'Language':
         return self if self.is_language_only() else Language.from_string(self.code)
 
+    def is_equal_or_more_generic_than(self, other: 'Language') -> bool:
+        if not other:
+            return False
+
+        if self.code != other.code:
+            return False
+        if self.script and self.script != other.script:
+            return False
+        if self.region and self.region != other.region:
+            return False
+
+        return True
+
     def __eq__(self, other: 'Language') -> bool:
         return self.tag == other.tag
 
@@ -134,8 +147,9 @@ class Language:
 
 class LanguageDirection:
     def __init__(self, source: Language, target: Language):
-        self._source = source
-        self._target = target
+        self._source: Language = source
+        self._target: Language = target
+        self._reversed: Optional['LanguageDirection'] = None
 
     @property
     def source(self) -> Language:
@@ -145,11 +159,34 @@ class LanguageDirection:
     def target(self) -> Language:
         return self._target
 
+    @property
+    def reversed(self):
+        if self._reversed is None:
+            self._reversed = LanguageDirection(source=self.target, target=self.source)
+        return self._reversed
+
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
         if len(language) != 2:
             raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
         return cls(source=Language.from_string(language[0]), target=Language.from_string(language[1]))
 
+    def is_equal_or_more_generic_than(self, other: 'LanguageDirection') -> bool:
+        return (self.source.is_equal_or_more_generic_than(other.source) and
+                self.target.is_equal_or_more_generic_than(other.target))
+
     def to_json(self) -> Tuple[str, str]:
         return self.source.tag, self.target.tag
+
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if not isinstance(other, LanguageDirection):
+            return False
+        return self.source == other.source and self.target == other.target
+
+    def __hash__(self) -> int:
+        return hash((self.source, self.target))
+
+    def __str__(self) -> str:
+        return f"{self.source} \u2192 {self.target}"
