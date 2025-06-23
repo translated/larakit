@@ -24,7 +24,7 @@ class JTMReader:
             raise IOError("Reader is not open.")
 
         for line in self._file:
-            if not line.startswith(JTM.Footer.FOOTER_LINE_BEGIN):
+            if not line.startswith(JTMCorpus.Footer.FOOTER_LINE_BEGIN):
                 yield TranslationUnit.from_json(json.loads(line))
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -53,12 +53,12 @@ class JTMWriter:
         self._file.write(json.dumps(tu.to_json(), ensure_ascii=False) + '\n')
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._file.write(str(JTM.Footer(self._counter, self._properties)))
+        self._file.write(str(JTMCorpus.Footer(self._counter, self._properties)))
         self._file.close()
 
 
 @dataclass
-class JTM(Corpus):
+class JTMCorpus(Corpus):
     @dataclass
     class Footer:
         _counter: Counter[LanguageDirection] = field(default=None)
@@ -71,7 +71,7 @@ class JTM(Corpus):
                 self._counter = Counter[LanguageDirection]()
 
         @classmethod
-        def parse(cls, line: str) -> 'JTM.Footer':
+        def parse(cls, line: str) -> 'JTMCorpus.Footer':
             if line.startswith(cls.FOOTER_LINE_BEGIN):
                 json_part = line[len(cls.FOOTER_LINE_BEGIN):].strip()
                 return cls.from_json(json.loads(json_part))
@@ -109,16 +109,16 @@ class JTM(Corpus):
             return data
 
         def __str__(self) -> str:
-            return f"{JTM.Footer.FOOTER_LINE_BEGIN}{json.dumps(self.to_json())}"
+            return f"{JTMCorpus.Footer.FOOTER_LINE_BEGIN}{json.dumps(self.to_json())}"
 
     _path: str
     _datasource_key: str = field(init=False)
     _id: str = field(init=False)
     _language: LanguageDirection = field(init=False)
-    _footer: Optional['JTM.Footer'] = field(init=False, default=None)
+    _footer: Optional['JTMCorpus.Footer'] = field(init=False, default=None)
 
     @classmethod
-    def list(cls, path: str) -> List['JTM']:
+    def list(cls, path: str) -> List['JTMCorpus']:
         return [cls(os.path.join(path, file)) for file in os.listdir(path) if file.endswith('.jtm')]
 
     def __post_init__(self):
@@ -149,7 +149,7 @@ class JTM(Corpus):
         return self._language
 
     @property
-    def footer(self) -> 'JTM.Footer':
+    def footer(self) -> 'JTMCorpus.Footer':
         if self._footer is None:
             self._footer = self._parse_footer()
         return self._footer
@@ -158,12 +158,12 @@ class JTM(Corpus):
     def properties(self) -> Optional[Properties]:
         return self.footer.properties if self.footer else None
 
-    def _parse_footer(self) -> Optional['JTM.Footer']:
+    def _parse_footer(self) -> Optional['JTMCorpus.Footer']:
         if not os.path.exists(self._path):
             return None
 
         last_line = shell.tail_1(self._path).decode("utf-8")
-        return JTM.Footer.parse(last_line)
+        return JTMCorpus.Footer.parse(last_line)
 
     def reader(self) -> JTMReader:
         return JTMReader(self._path)
@@ -171,9 +171,9 @@ class JTM(Corpus):
     def writer(self, properties: Dict[str, Union[str, List[str]]] = None) -> JTMWriter:
         return JTMWriter(self._path, properties or self.properties)
 
-    def link(self, dest_path: str, symbolic: bool = False, overwrite: bool = True) -> 'JTM':
+    def link(self, dest_path: str, symbolic: bool = False, overwrite: bool = True) -> 'JTMCorpus':
         output_path = shell.link(self._path, dest_path, symbolic=symbolic, overwrite=overwrite)
-        return JTM(output_path)
+        return JTMCorpus(output_path)
 
     def __len__(self):
         return self.footer.get_total_count() if self.footer else 0
