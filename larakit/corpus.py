@@ -175,7 +175,7 @@ class JTMWriter:
         self._file.write(json.dumps(tu.to_json(), ensure_ascii=False) + '\n')
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._file.write(JTM.Footer(self._counter, self._properties))
+        self._file.write(str(JTM.Footer(self._counter, self._properties)))
         self._file.close()
 
 
