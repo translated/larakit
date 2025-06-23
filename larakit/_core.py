@@ -18,7 +18,15 @@ class Namespace:
     def __getattr__(self, key):
         return self.get(key)
 
+    def _set_private(self, key, value):
+        if not key.startswith('_'):
+            raise KeyError(f'Private properties must start with an underscore: {key}')
+        super().__setattr__(key, value)
+
     def set(self, key, value):
+        if key.startswith('_'):
+            raise KeyError(f'Private properties are not allowed: {key}')
+
         def parse(val):
             if isinstance(val, dict):
                 return Namespace(**val)
@@ -57,12 +65,11 @@ class Namespace:
 class StatefulNamespace(Namespace):
     def __init__(self, path: str, autosave: bool = False, **default_kwargs):
         super().__init__()
+        self._set_private('_path', path)
+        self._set_private('_autosave', autosave)
 
         for key, value in default_kwargs.items():
             super().set(key, value)
-
-        object.__setattr__(self, '_path', path)
-        object.__setattr__(self, '_autosave', autosave)
 
         if os.path.isfile(self._path):
             with open(self._path, 'r', encoding='utf-8') as f_input:
@@ -72,6 +79,14 @@ class StatefulNamespace(Namespace):
 
         if self._autosave:
             self.save()
+
+    @property
+    def path(self) -> str:
+        return self._path
+
+    @property
+    def autosave(self) -> bool:
+        return self._autosave
 
     def set(self, key, value):
         super().set(key, value)
