@@ -1,17 +1,32 @@
 import json
 import os
+from typing import Dict, Any
 
 
-class Namespace(object):
+class Namespace:
     @classmethod
-    def from_json_string(cls, json_string):
+    def from_json_string(cls, json_string: str) -> 'Namespace':
         return cls(**json.loads(json_string))
 
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
-            self._internal_set(key, value)
+            self.set(key, value)
 
-    def _assign(self, key, value):
+    def get(self, key, default=None):
+        return self.__dict__.get(key, default)
+
+    def __getattr__(self, key):
+        return self.get(key)
+
+    def _set_private(self, key, value):
+        if not key.startswith('_'):
+            raise KeyError(f'Private properties must start with an underscore: {key}')
+        super().__setattr__(key, value)
+
+    def set(self, key, value):
+        if key.startswith('_'):
+            raise KeyError(f'Private properties are not allowed: {key}')
+
         def parse(val):
             if isinstance(val, dict):
                 return Namespace(**val)
@@ -21,17 +36,8 @@ class Namespace(object):
 
         super().__setattr__(key, parse(value))
 
-    def get(self, key, default=None):
-        return self.__dict__.get(key, default)
-
-    def __getattr__(self, key):
-        return self.get(key)
-
-    def set(self, key, value):
-        self._assign(key, value)
-
     def __setattr__(self, key, value):
-        self._assign(key, value)
+        self.set(key, value)
 
     def has(self, key):
         return key in self.__dict__
@@ -43,47 +49,51 @@ class Namespace(object):
         return f'{self.__class__.__name__}{self.__dict__}'
 
     def __str__(self):
-        return repr(self)
+        return str(self.to_json())
 
-    def to_json(self):
-        def _convert(value):
+    def to_json(self) -> Dict[str, Any]:
+        def _to_json(value):
             if isinstance(value, Namespace):
                 return value.to_json()
             elif isinstance(value, list):
-                return [_convert(v) for v in value]
+                return [_to_json(v) for v in value]
             return value
 
-        return {key: _convert(value) for key, value in self.__dict__.items()}
+        return {key: _to_json(value) for key, value in self.__dict__.items() if not key.startswith('_')}
 
 
 class StatefulNamespace(Namespace):
     def __init__(self, path: str, autosave: bool = False, **default_kwargs):
-        super().__init__(**default_kwargs)
-        self.__path = path
-        self.__autosave = autosave
+        super().__init__()
+        self._set_private('_path', path)
+        self._set_private('_autosave', autosave)
 
-        if os.path.isfile(self.path):
-            with open(self.path, 'r', encoding='utf-8') as f_input:
+        for key, value in default_kwargs.items():
+            super().set(key, value)
+
+        if os.path.isfile(self._path):
+            with open(self._path, 'r', encoding='utf-8') as f_input:
                 data = json.load(f_input)
                 for key, value in data.items():
-                    self._assign(key, value)
-        else:
-            for key, value in default_kwargs.items():
-                self._assign(key, value)
+                    super().set(key, value)
 
-        if self.__autosave:
+        if self._autosave:
             self.save()
 
-    def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-        if self.__autosave:
-            self.save()
+    @property
+    def path(self) -> str:
+        return self._path
+
+    @property
+    def autosave(self) -> bool:
+        return self._autosave
 
     def set(self, key, value):
         super().set(key, value)
-        if self.__autosave:
+
+        if self._autosave:
             self.save()
 
-    def save(self) -> None:
-        with open(self.path, 'w', encoding='utf-8') as f_output:
-            f_output.write(json.dumps(self.namespace.to_json(), indent=2, sort_keys=True))
+    def save(self, indent: int = 2, sort_keys: bool = True):
+        with open(self._path, 'w', encoding='utf-8') as f_output:
+            f_output.write(json.dumps(self.to_json(), indent=indent, sort_keys=sort_keys))
