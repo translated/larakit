@@ -1,16 +1,97 @@
 import json
 import os
+from collections import Counter
 from dataclasses import dataclass, field
-from typing import Dict, List, Generator, Union, Optional, Any
+from typing import Dict, List, Union, Optional, Iterable
+from typing import Generator, Any
 
 from larakit import shell
-from larakit.counter import Counter
 from larakit.lang import LanguageDirection
-from larakit.properties import Properties
+
+
+class Properties:
+    def __init__(self, other: Optional['Properties'] = None):
+        self._map: Dict[str, Union[str, List[str]]] = {}
+        if other:
+            self._set_all(other.map)
+
+    @classmethod
+    def from_json(cls, json_data: Dict[str, Union[str, List[str]]]) -> 'Properties':
+        properties = cls()
+        properties._set_all(json_data)
+        return properties
+
+    @property
+    def map(self) -> Dict[str, Union[str, List[str]]]:
+        return self._map
+
+    def put(self, key: str, value: str) -> None:
+        existing = self.map.get(key)
+        if existing is None:
+            self.map[key] = value
+        elif isinstance(existing, list):
+            existing.append(value)
+        else:
+            self.map[key] = [existing, value]
+
+    def _set(self, key: str, value: Union[str, List[str]]) -> None:
+        self.map[key] = value.copy() if isinstance(value, list) else value
+
+    def _set_all(self, data: Dict[str, Union[str, List[str]]]) -> None:
+        for key, value in data.items():
+            self._set(key, value)
+
+    def set(self, key: str, value: str) -> None:
+        self._set(key, value)
+
+    def has(self, key: str) -> bool:
+        return key in self.map
+
+    def keys(self) -> Iterable[str]:
+        return self.map.keys()
+
+    def get(self, key: str) -> Union[str, List[str], None]:
+        return self.map.get(key)
+
+    def size(self) -> int:
+        return len(self.map)
+
+    def value(self, key: str) -> Optional[str]:
+        value = self.map.get(key)
+        if value is None:
+            return None
+        elif isinstance(value, list):
+            return value[0]
+        else:
+            return value
+
+    def values(self, key: str) -> Optional[List[str]]:
+        value = self.map.get(key)
+        if value is None:
+            return None
+        elif isinstance(value, list):
+            return value[:]
+        else:
+            return [value]
+
+    def remove(self, key: str) -> None:
+        self.map.pop(key, None)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Properties):
+            return False
+        return self.map == other.map
+
+    def __hash__(self) -> int:
+        items = tuple(sorted((k, tuple(v) if isinstance(v, list) else v) for k, v in self.map.items()))
+        return hash(items)
+
+    def __str__(self) -> str:
+        return str(self.map)
 
 
 @dataclass
-class TU:
+class TranslationUnit:
     language: LanguageDirection
     sentence: str
     translation: str
@@ -60,13 +141,13 @@ class JTMReader:
         self._file = open(self._path, 'r', encoding='utf-8')
         return self
 
-    def __iter__(self) -> Generator[TU, None, None]:
+    def __iter__(self) -> Generator[TranslationUnit, None, None]:
         if self._file is None:
             raise IOError("Reader is not open.")
 
         for line in self._file:
             if not line.startswith(JTM.Footer.FOOTER_LINE_BEGIN):
-                yield TU.from_json(json.loads(line))
+                yield TranslationUnit.from_json(json.loads(line))
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._file.close()
@@ -89,8 +170,8 @@ class JTMWriter:
         self._file = open(self._path, 'w', encoding='utf-8')
         return self
 
-    def write(self, tu: TU):
-        self._counter.count(tu.language)
+    def write(self, tu: TranslationUnit):
+        self._counter[tu.language] += 1
         self._file.write(json.dumps(tu.to_json(), ensure_ascii=False) + '\n')
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -126,7 +207,7 @@ class JTM:
 
             counter = Counter[LanguageDirection]()
             for lang_tuple, lang_count in counter_data:
-                counter.count(LanguageDirection.from_tuple(lang_tuple), lang_count)
+                counter[LanguageDirection.from_tuple(lang_tuple)] = lang_count
 
             properties = Properties.from_json(properties_data) if properties_data else None
             return cls(counter, properties)
@@ -140,10 +221,10 @@ class JTM:
             return self._properties
 
         def get_total_count(self) -> int:
-            return self._counter.get_total_count()
+            return self._counter.total()
 
         def to_json(self) -> Dict[str, Any]:
-            data: Dict[str, Any] = {"counter": [[lang.to_json(), count] for lang, count in self.counter.items_count()]}
+            data: Dict[str, Any] = {"counter": [[lang.to_json(), count] for lang, count in self.counter.items()]}
             if self._properties:
                 data["properties"] = self._properties.map
 
