@@ -40,10 +40,10 @@ class MemoryMatch:
 
 @dataclass
 class TrainingUnit:
-    tuid: str
     language: List[str]
     sentence: str
     translation: str
+    tuid: Optional[str] = field(default=None)
     matches: Optional[List[MemoryMatch]] = field(default=None)
     before: Optional[List[str]] = field(default=None)
     after: Optional[List[str]] = field(default=None)
