@@ -21,7 +21,7 @@ class Language:
         if language.script in ('Hans', 'Hant'):
             return language.script
 
-        return 'Hans' if language.region is None or language.region in ('CN', 'SG') else 'Hant'
+        return 'Hant' if language.region in ('TW', 'HK', 'MO') else 'Hans'
 
     @staticmethod
     def _to_title_case(string: str) -> str:
