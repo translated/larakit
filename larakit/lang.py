@@ -14,16 +14,6 @@ class Language:
         self._script: Optional[str] = script
 
     @staticmethod
-    def get_chinese_script(language: 'Language') -> str:
-        if language.code != 'zh':
-            raise ValueError("Language must be Chinese (zh) to parse script")
-
-        if language.script in ('Hans', 'Hant'):
-            return language.script
-
-        return 'Hant' if language.region in ('TW', 'HK', 'MO') else 'Hans'
-
-    @staticmethod
     def _to_title_case(string: str) -> str:
         return string[0].upper() + string[1:].lower()
 
