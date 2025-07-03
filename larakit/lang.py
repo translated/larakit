@@ -131,6 +131,9 @@ class Language:
     def __hash__(self) -> int:
         return hash(self.tag)
 
+    def __repr__(self) -> str:
+        return self.tag
+
     def __str__(self):
         return self.tag
 
@@ -178,5 +181,8 @@ class LanguageDirection:
     def __hash__(self) -> int:
         return hash((self.source, self.target))
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def __str__(self) -> str:
-        return f"{self.source} \u2192 {self.target}"
+        return f"{self.source}\u2192{self.target}"
