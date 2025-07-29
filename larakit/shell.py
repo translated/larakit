@@ -1,7 +1,7 @@
 import logging
 import os
 import subprocess
-from typing import Any, Generator, List
+from typing import BinaryIO, Generator, List
 
 DEVNULL = open(os.devnull, 'wb')
 
@@ -93,7 +93,7 @@ def lc(filename: str, block_size: int = 65536) -> int:
     if not os.path.isfile(filename):
         raise FileNotFoundError(f'File "{filename}" does not exist.')
 
-    def _blocks(files: Any) -> Generator[bytes, None, None]:
+    def _blocks(files: BinaryIO) -> Generator[bytes, None, None]:
         while True:
             b = files.read(block_size)
             if not b:
