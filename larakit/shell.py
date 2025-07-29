@@ -1,7 +1,7 @@
 import logging
 import os
 import subprocess
-from typing import List
+from typing import Any, Generator, List
 
 DEVNULL = open(os.devnull, 'wb')
 
@@ -87,6 +87,24 @@ def tail_1(path: str) -> bytes:
                 return last_line
             else:
                 window_size *= 2
+
+
+def lc(filename: str, block_size: int = 65536) -> int:
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(f'File "{filename}" does not exist.')
+
+    def _blocks(files: Any) -> Generator[bytes, None, None]:
+        while True:
+            b = files.read(block_size)
+            if not b:
+                break
+            yield b
+
+    with open(filename, 'rb') as stream:
+        count = 0
+        for block in _blocks(stream):
+            count += block.count(b'\n')
+        return count
 
 
 def link(file_path: str, dest_path: str, symbolic: bool = False, overwrite: bool = True) -> str:
