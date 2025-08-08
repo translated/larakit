@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field
-from typing import Any
-from typing import Dict, List, Union, Optional, Iterable
+from abc import abstractmethod
+from typing import Dict, List, Union, Optional, Iterable, Set, Tuple
 
+from larakit.corpus.jtm import JTMCorpus
 from larakit.lang import LanguageDirection
 
 
@@ -86,34 +86,62 @@ class Properties:
         return str(self.map)
 
 
-@dataclass
 class TranslationUnit:
-    language: LanguageDirection
-    sentence: str
-    translation: str
-    tuid: Optional[str] = field(default=None)
-    creation_date: Optional[str] = field(default=None)
-    change_date: Optional[str] = field(default=None)
-    properties: Properties = field(default=None)
+    def __init__(self, language: LanguageDirection, sentence: str, translation: str, tuid: Optional[str] = None,
+                 creation_date: Optional[str] = None, change_date: Optional[str] = None,
+                 properties: Optional[Properties] = None):
+        self._language: LanguageDirection = language
+        self._sentence: str = sentence
+        self._translation: str = translation
+        self._tuid: Optional[str] = tuid
+        self._creation_date: Optional[str] = creation_date
+        self._change_date: Optional[str] = change_date
+        self._properties: Optional[Properties] = properties
 
     @classmethod
-    def from_json(cls, json_data: Dict[str, Any]):
-        return cls(
-            language=LanguageDirection.from_tuple(json_data['language']),
-            sentence=json_data["sentence"],
-            translation=json_data["translation"],
+    def from_tu(cls, tu: 'TranslationUnit') -> 'TranslationUnit':
+        return cls(language=tu.language, sentence=tu.sentence, translation=tu.translation, tuid=tu.tuid,
+                   creation_date=tu.creation_date, change_date=tu.change_date,
+                   properties=None if tu.properties is None else Properties(tu.properties))
 
-            tuid=json_data.get("tuid", None),
-            creation_date=json_data.get("creationDate", None),
-            change_date=json_data.get("changeDate", None),
-            properties=Properties.from_json(json_data.get("properties"))
-        )
+    @classmethod
+    def from_json(cls, json_data: Dict[str, Union[str, List[str], Tuple[str, str]]]) -> 'TranslationUnit':
+        return cls(language=LanguageDirection.from_tuple(json_data['language']), sentence=json_data["sentence"],
+                   translation=json_data["translation"], tuid=json_data.get("tuid", None),
+                   creation_date=json_data.get("creationDate", None), change_date=json_data.get("changeDate", None),
+                   properties=json_data.get("properties"))
 
-    def to_json(self) -> Dict[str, Any]:
-        data: Dict[str, Union[str, Dict[str, List[str]]]] = {
-            "language": self.language.to_json(),
-            "sentence": self.sentence,
-            "translation": self.translation,
+    @property
+    def language(self) -> LanguageDirection:
+        return self._language
+
+    @property
+    def sentence(self) -> str:
+        return self._sentence
+
+    @property
+    def translation(self) -> str:
+        return self._translation
+
+    @property
+    def tuid(self) -> Optional[str]:
+        return self._tuid
+
+    @property
+    def creation_date(self) -> Optional[str]:
+        return self._creation_date
+
+    @property
+    def change_date(self) -> Optional[str]:
+        return self._change_date
+
+    @property
+    def properties(self) -> Optional[Properties]:
+        return self._properties
+
+    def to_json(self) -> Dict[str, Union[str, Tuple[str, str], Dict[str, str | List[str]]]]:
+        data: Dict[str, Union[str, Tuple[str, str], Dict[str, str | List[str]]]] = {
+            "language": self.language.to_json(), "sentence": self.sentence, "translation": self.translation
         }
 
         if self.tuid is not None:
@@ -127,6 +155,50 @@ class TranslationUnit:
 
         return data
 
+    def __eq__(self, other: 'TranslationUnit') -> bool:
+        if not isinstance(other, TranslationUnit):
+            return False
+        return (self.tuid == other.tuid and self.language == other.language and
+                self.sentence == other.sentence and self.translation == other.translation and
+                self.creation_date == other.creation_date and self.change_date == other.change_date)
 
-class Corpus:
+    def __hash__(self) -> int:
+        return hash((self.tuid, self.language, self.sentence, self.translation, self.creation_date, self.change_date))
+
+    def __str__(self) -> str:
+        return f'[{self.language}]<{self.sentence}> ||| <{self.translation}>'
+
+
+class TUReader:
     pass
+
+
+class TUWriter:
+    pass
+
+
+class MultilingualCorpus:
+
+    @classmethod
+    def from_path(cls, path: Union[str, Tuple[str, str]]) -> 'MultilingualCorpus':
+        if isinstance(path, str):
+            if path.endswith('.jtm'):
+                return JTMCorpus(path)
+
+        raise NotImplementedError(f"Corpus type for path '{path}' is not implemented.")
+
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    @abstractmethod
+    def languages(self) -> Set[LanguageDirection]:
+        pass
+
+    @abstractmethod
+    def reader(self) -> TUReader:
+        pass
+
+    @abstractmethod
+    def writer(self) -> TUWriter:
+        pass

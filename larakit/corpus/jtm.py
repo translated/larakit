@@ -2,18 +2,18 @@ import json
 import os
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Optional, Set, TextIO
 from typing import Generator, Any
 
 from larakit import shell
-from larakit.corpus import TranslationUnit, Properties, Corpus
+from larakit.corpus import TranslationUnit, Properties, MultilingualCorpus, TUReader
 from larakit.lang import LanguageDirection
 
 
-class JTMReader:
+class JTMReader(TUReader):
     def __init__(self, path: str):
         self._path = path
-        self._file = None
+        self._file: Optional[TextIO] = None
 
     def __enter__(self):
         self._file = open(self._path, 'r', encoding='utf-8')
@@ -31,12 +31,20 @@ class JTMReader:
         self._file.close()
 
 
-class JTMWriter:
-    def __init__(self, path: str, properties: Dict[str, Any] = None):
+class JTMWriter(TUReader):
+    def __init__(self, path: str, properties: Optional[Properties] = None):
         self._path = path
-        self._file = None
+        self._file: Optional[TextIO] = None
         self._properties = properties
         self._counter: Counter[LanguageDirection] = Counter()
+
+    def __enter__(self):
+        self._file = open(self._path, 'w', encoding='utf-8')
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._file.write(str(JTMCorpus.Footer(self._counter, self._properties)))
+        self._file.close()
 
     def add_property(self, key: str, value: str):
         if self._properties is None:
@@ -44,21 +52,12 @@ class JTMWriter:
 
         self._properties.put(key, value)
 
-    def __enter__(self):
-        self._file = open(self._path, 'w', encoding='utf-8')
-        return self
-
     def write(self, tu: TranslationUnit):
         self._counter[tu.language] += 1
         self._file.write(json.dumps(tu.to_json(), ensure_ascii=False) + '\n')
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._file.write(str(JTMCorpus.Footer(self._counter, self._properties)))
-        self._file.close()
 
-
-@dataclass
-class JTMCorpus(Corpus):
+class JTMCorpus(MultilingualCorpus):
     @dataclass
     class Footer:
         _counter: Counter[LanguageDirection] = field(default=None)
@@ -111,47 +110,28 @@ class JTMCorpus(Corpus):
         def __str__(self) -> str:
             return f"{JTMCorpus.Footer.FOOTER_LINE_BEGIN}{json.dumps(self.to_json())}"
 
-    _path: str
-    _datasource_key: str = field(init=False)
-    _id: str = field(init=False)
-    _language: LanguageDirection = field(init=False)
-    _footer: Optional['JTMCorpus.Footer'] = field(init=False, default=None)
-
-    @classmethod
-    def list(cls, path: str) -> List['JTMCorpus']:
-        return [cls(os.path.join(path, file)) for file in os.listdir(path) if file.endswith('.jtm')]
-
-    def __post_init__(self):
-        self._datasource_key, self._id, lang_key = os.path.basename(self._path).split('.')[:3]
-        self._datasource_key = self._datasource_key.lower()
-
-        l1, l2 = lang_key.split('__')
-        self._language = LanguageDirection.from_tuple((l1, l2))
-
-    @property
-    def id(self) -> str:
-        return self._id
+    def __init__(self, path: str):
+        self._path: str = path
+        self._name: str = os.path.basename(path)
+        self._footer: Optional[JTMCorpus.Footer] = None
 
     @property
     def path(self) -> str:
         return self._path
 
     @property
-    def filename(self) -> str:
-        return os.path.basename(self._path)
+    def name(self) -> str:
+        return self._name
 
     @property
-    def datasource_key(self) -> str:
-        return self._datasource_key
-
-    @property
-    def language(self) -> LanguageDirection:
-        return self._language
+    def languages(self) -> Set[LanguageDirection]:
+        return set(self.footer.counter.keys())
 
     @property
     def footer(self) -> 'JTMCorpus.Footer':
         if self._footer is None:
             self._footer = self._parse_footer()
+
         return self._footer
 
     @property
@@ -168,12 +148,8 @@ class JTMCorpus(Corpus):
     def reader(self) -> JTMReader:
         return JTMReader(self._path)
 
-    def writer(self, properties: Dict[str, Union[str, List[str]]] = None) -> JTMWriter:
+    def writer(self, properties: Optional['JTMCorpus.Footer'] = None) -> JTMWriter:
         return JTMWriter(self._path, properties or self.properties)
-
-    def link(self, dest_path: str, symbolic: bool = False, overwrite: bool = True) -> 'JTMCorpus':
-        output_path = shell.link(self._path, dest_path, symbolic=symbolic, overwrite=overwrite)
-        return JTMCorpus(output_path)
 
     def __len__(self):
         return self.footer.get_total_count() if self.footer else 0
