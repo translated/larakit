@@ -179,7 +179,6 @@ class TUWriter:
 
 
 class MultilingualCorpus:
-
     @classmethod
     def from_path(cls, path: Union[str, Tuple[str, str]]) -> 'MultilingualCorpus':
         if isinstance(path, str) and path.endswith('.jtm'):

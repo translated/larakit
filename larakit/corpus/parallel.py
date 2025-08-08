@@ -51,9 +51,13 @@ class ParallelFileLineWriter(TUWriter):
         if self._target_file:
             self._target_file.close()
 
+    @staticmethod
+    def _normalize(text: str) -> str:
+        return text.replace('\n', ' ').strip()
+
     def write(self, tu: TranslationUnit):
-        self._source_file.write(tu.sentence + '\n')
-        self._target_file.write(tu.translation + '\n')
+        self._source_file.write(self._normalize(tu.sentence) + '\n')
+        self._target_file.write(self._normalize(tu.translation) + '\n')
 
 
 class ParallelCorpus(MultilingualCorpus):
