@@ -177,17 +177,6 @@ class TUWriter:
 
 
 class MultilingualCorpus:
-    @classmethod
-    def from_path(cls, path: Union[str, Tuple[str, str]]) -> 'MultilingualCorpus':
-        if isinstance(path, str) and path.endswith('.jtm'):
-            from larakit.corpus.jtm import JTMCorpus
-            return JTMCorpus(path=path)
-        elif isinstance(path, tuple) and len(path) == 2:
-            from larakit.corpus.parallel import ParallelCorpus
-            return ParallelCorpus(source=path[0], target=path[1])
-
-        raise NotImplementedError(f"Corpus type for path '{path}' is not implemented.")
-
     @abstractmethod
     def name(self) -> str:
         pass
