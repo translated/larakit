@@ -1,8 +1,6 @@
 from abc import abstractmethod
 from typing import Dict, List, Union, Optional, Iterable, Set, Tuple
 
-from larakit.corpus.jtm import JTMCorpus
-from larakit.corpus.parallel import ParallelCorpus
 from larakit.lang import LanguageDirection
 
 
@@ -182,8 +180,10 @@ class MultilingualCorpus:
     @classmethod
     def from_path(cls, path: Union[str, Tuple[str, str]]) -> 'MultilingualCorpus':
         if isinstance(path, str) and path.endswith('.jtm'):
+            from larakit.corpus.jtm import JTMCorpus
             return JTMCorpus(path=path)
         elif isinstance(path, tuple) and len(path) == 2:
+            from larakit.corpus.parallel import ParallelCorpus
             return ParallelCorpus(source=path[0], target=path[1])
 
         raise NotImplementedError(f"Corpus type for path '{path}' is not implemented.")

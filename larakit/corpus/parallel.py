@@ -67,9 +67,8 @@ class ParallelCorpus(MultilingualCorpus):
 
         source_parts = os.path.splitext(os.path.basename(source))
         target_parts = os.path.splitext(os.path.basename(target))
-
         self._name = source_parts[0]
-        self._language: LanguageDirection = LanguageDirection.from_tuple((source_parts[0][:1], target_parts[0][:1]))
+        self._language: LanguageDirection = LanguageDirection.from_tuple((source_parts[1][1:], target_parts[1][1:]))
 
     @property
     def name(self) -> str:
@@ -79,10 +78,8 @@ class ParallelCorpus(MultilingualCorpus):
     def languages(self) -> Set[LanguageDirection]:
         return {self._language}
 
-    @property
     def reader(self) -> ParallelFileLineReader:
         return ParallelFileLineReader(self._language, self._source, self._target)
 
-    @property
     def writer(self) -> ParallelFileLineWriter:
         return ParallelFileLineWriter(self._language, self._source, self._target)

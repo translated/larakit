@@ -1,7 +1,6 @@
 import json
 import os
 from collections import Counter
-from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, TextIO
 from typing import Generator, Any
 
@@ -43,7 +42,7 @@ class JTMWriter(TUReader):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._file.write(str(JTMCorpus.Footer(self._counter, self._properties)))
+        self._file.write(f'{JTMCorpus.Footer(self._counter, self._properties)}\n')
         self._file.close()
 
     def add_property(self, key: str, value: str):
@@ -58,16 +57,13 @@ class JTMWriter(TUReader):
 
 
 class JTMCorpus(MultilingualCorpus):
-    @dataclass
     class Footer:
-        _counter: Counter[LanguageDirection] = field(default=None)
-        _properties: Optional[Properties] = field(default=None)
-
         FOOTER_LINE_BEGIN = ".footer"
 
-        def __post_init__(self):
-            if self.counter is None:
-                self._counter = Counter[LanguageDirection]()
+        def __init__(self, counter: Optional[Counter[LanguageDirection]] = None,
+                     properties: Optional[Properties] = None):
+            self._counter: Counter[LanguageDirection] = counter if counter else Counter[LanguageDirection]()
+            self._properties: Optional[Properties] = properties
 
         @classmethod
         def parse(cls, line: str) -> 'JTMCorpus.Footer':
@@ -148,7 +144,7 @@ class JTMCorpus(MultilingualCorpus):
     def reader(self) -> JTMReader:
         return JTMReader(self._path)
 
-    def writer(self, properties: Optional['JTMCorpus.Footer'] = None) -> JTMWriter:
+    def writer(self, properties: Optional[Properties] = None) -> JTMWriter:
         return JTMWriter(self._path, properties or self.properties)
 
     def __len__(self):
