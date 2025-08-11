@@ -75,13 +75,10 @@ class JTMCorpus(MultilingualCorpus):
 
         @classmethod
         def from_json(cls, data: Dict[str, Any]):
-            counter_data: List = data.get("counter", [])
+            counter = Counter({LanguageDirection.from_tuple(lang_tuple): lang_count
+                               for lang_tuple, lang_count in data.get("counter", [])})
+
             properties_data: Optional[Dict] = data.get("properties", None)
-
-            counter = Counter[LanguageDirection]()
-            for lang_tuple, lang_count in counter_data:
-                counter[LanguageDirection.from_tuple(lang_tuple)] = lang_count
-
             properties = Properties.from_json(properties_data) if properties_data else None
             return cls(counter, properties)
 
