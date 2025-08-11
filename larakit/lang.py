@@ -14,16 +14,6 @@ class Language:
         self._script: Optional[str] = script
 
     @staticmethod
-    def get_chinese_script(language: 'Language') -> str:
-        if language.code != 'zh':
-            raise ValueError("Language must be Chinese (zh) to parse script")
-
-        if language.script in ('Hans', 'Hant'):
-            return language.script
-
-        return 'Hans' if language.region is None or language.region in ('CN', 'SG') else 'Hant'
-
-    @staticmethod
     def _to_title_case(string: str) -> str:
         return string[0].upper() + string[1:].lower()
 
@@ -141,6 +131,9 @@ class Language:
     def __hash__(self) -> int:
         return hash(self.tag)
 
+    def __repr__(self) -> str:
+        return self.tag
+
     def __str__(self):
         return self.tag
 
@@ -188,5 +181,8 @@ class LanguageDirection:
     def __hash__(self) -> int:
         return hash((self.source, self.target))
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def __str__(self) -> str:
-        return f"{self.source} \u2192 {self.target}"
+        return f"{self.source}\u2192{self.target}"
