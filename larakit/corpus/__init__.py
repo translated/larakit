@@ -165,7 +165,7 @@ class TranslationUnit:
         return hash((self.tuid, self.language, self.sentence, self.translation, self.creation_date, self.change_date))
 
     def __str__(self) -> str:
-        return f'[{self.language}]<{self.sentence}> ||| <{self.translation}>'
+        return f'[{self.language}] <{self.sentence}> ||| <{self.translation}>'
 
 
 class TUReader:
