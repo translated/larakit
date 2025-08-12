@@ -1,29 +1,47 @@
 import os
-import tempfile
-import unittest
 
 from larakit.corpus import TranslationUnit
 from larakit.corpus.parallel import ParallelCorpus
-from larakit.lang import LanguageDirection
+from test.corpus._base import TestCorpus
 
 
-class TestParallelCorpus(unittest.TestCase):
+class TestParallelCorpus(TestCorpus):
     def setUp(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.source_file_path = os.path.join(self.temp_dir.name, "example.en")
-        self.target_file_path = os.path.join(self.temp_dir.name, "example.fr")
+        super().setUp()
 
-        self.parallel_corpus = ParallelCorpus(self.source_file_path, self.target_file_path)
-        self.language_direction = LanguageDirection.from_tuple(("en", "fr"))
-        self.tu = TranslationUnit(language=self.language_direction, sentence="Hello", translation="Bonjour")
+        self.source_file_path = os.path.join(self.temp_dir.name, f'{self.corpus_name}.{self.source_lang}')
+        self.target_file_path = os.path.join(self.temp_dir.name, f'{self.corpus_name}.{self.target_lang}')
+        self.corpus = ParallelCorpus(self.source_file_path, self.target_file_path)
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_empty_corpus(self):
+        with open(self.source_file_path, 'w', encoding='utf-8') as f:
+            f.write('')
+        with open(self.target_file_path, 'w', encoding='utf-8') as f:
+            f.write('')
+
+        units = self._read_all()
+        self.assertEqual(len(units), 0)
+
+    def test_writer_normalization(self):
+        tu_with_newline = TranslationUnit(language=self.language_direction, sentence='This is\na test.',
+                                          translation='Ceci est\nun test.', )
+
+        with self.corpus.writer() as writer:
+            writer.write(tu_with_newline)
+
+        units = self._read_all()
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0].sentence, 'This is a test.')
+        self.assertEqual(units[0].translation, 'Ceci est un test.')
+
+    def test_languages_parsing(self):
+        self.assertEqual(self.corpus.languages, {self.language_direction})
 
     def test_writer_and_reader(self):
-        with self.parallel_corpus.writer() as writer:
-            writer.write(self.tu)
+        self._test_writer_and_reader()
 
-        with self.parallel_corpus.reader() as reader:
-            units = list(reader)
-
-        self.assertEqual(len(units), 1)
-        self.assertEqual(units[0].sentence, self.tu.sentence)
-        self.assertEqual(units[0].translation, self.tu.translation)
+    def test_filename_parsing(self):
+        self._test_filename_parsing()
