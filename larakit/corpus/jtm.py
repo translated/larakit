@@ -106,7 +106,7 @@ class JTMCorpus(MultilingualCorpus):
 
     def __init__(self, path: str):
         self._path: str = path
-        self._name: str = os.path.splitext(os.path.basename(path))[0]
+        self._name: str = os.path.basename(path)
         self._footer: Optional[JTMCorpus.Footer] = None
 
     @property
