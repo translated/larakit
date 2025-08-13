@@ -184,7 +184,7 @@ class TUReader:
 
 class TUWriter:
     @abstractmethod
-    def __enter__(self):
+    def __enter__(self) -> 'TUWriter':
         pass
 
     @abstractmethod

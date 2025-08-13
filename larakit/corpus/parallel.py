@@ -5,7 +5,7 @@ from larakit.corpus import MultilingualCorpus, TUReader, TranslationUnit, TUWrit
 from larakit.lang import LanguageDirection
 
 
-class ParallelFileLineReader(TUReader):
+class ParallelCorpusReader(TUReader):
     def __init__(self, language: LanguageDirection, source: str, target: str):
         self._language: LanguageDirection = language
         self._source: str = source
@@ -31,7 +31,7 @@ class ParallelFileLineReader(TUReader):
         self._target_file.close()
 
 
-class ParallelFileLineWriter(TUWriter):
+class ParallelCorpusWriter(TUWriter):
     def __init__(self, language: LanguageDirection, source: str, target: str):
         self._language: LanguageDirection = language
         self._source: str = source
@@ -78,8 +78,8 @@ class ParallelCorpus(MultilingualCorpus):
     def languages(self) -> Set[LanguageDirection]:
         return {self._language}
 
-    def reader(self) -> TUReader:
-        return ParallelFileLineReader(self._language, self._source, self._target)
+    def reader(self) -> ParallelCorpusReader:
+        return ParallelCorpusReader(self._language, self._source, self._target)
 
-    def writer(self) -> TUWriter:
-        return ParallelFileLineWriter(self._language, self._source, self._target)
+    def writer(self) -> ParallelCorpusWriter:
+        return ParallelCorpusWriter(self._language, self._source, self._target)

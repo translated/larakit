@@ -139,10 +139,10 @@ class JTMCorpus(MultilingualCorpus):
         last_line = shell.tail_1(self._path).decode("utf-8")
         return JTMCorpus.Footer.parse(last_line)
 
-    def reader(self) -> TUReader:
+    def reader(self) -> JTMReader:
         return JTMReader(self._path)
 
-    def writer(self, properties: Optional[Properties] = None) -> TUWriter:
+    def writer(self, properties: Optional[Properties] = None) -> JTMWriter:
         return JTMWriter(self._path, properties or self.properties)
 
     def __len__(self):
