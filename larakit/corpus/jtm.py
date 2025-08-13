@@ -53,7 +53,7 @@ class JTMWriter(TUWriter):
 
     def write(self, tu: TranslationUnit):
         self._counter[tu.language] += 1
-        self._file.write(json.dumps(tu.to_json(), ensure_ascii=False) + '\n')
+        self._file.write(json.dumps(tu.to_json(), ensure_ascii=False, separators=(',', ':')) + '\n')
 
 
 class JTMCorpus(MultilingualCorpus):
@@ -102,7 +102,7 @@ class JTMCorpus(MultilingualCorpus):
             return data
 
         def __str__(self) -> str:
-            return f"{JTMCorpus.Footer.FOOTER_LINE_BEGIN}{json.dumps(self.to_json())}"
+            return f"{JTMCorpus.Footer.FOOTER_LINE_BEGIN}{json.dumps(self.to_json(), separators=(',', ':'))}"
 
     def __init__(self, path: str):
         self._path: str = path
