@@ -62,7 +62,7 @@ class JTMCorpus(MultilingualCorpus):
 
         def __init__(self, counter: Optional[Counter[LanguageDirection]] = None,
                      properties: Optional[Properties] = None):
-            self._counter: Counter[LanguageDirection] = counter if counter else Counter[LanguageDirection]()
+            self._counter: Counter[LanguageDirection] = counter if counter else Counter()
             self._properties: Optional[Properties] = properties
 
         @classmethod
