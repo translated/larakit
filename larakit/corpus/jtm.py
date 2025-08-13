@@ -14,7 +14,7 @@ class JTMReader(TUReader):
         self._path = path
         self._file: Optional[TextIO] = None
 
-    def __enter__(self):
+    def __enter__(self) -> 'JTMReader':
         self._file = open(self._path, 'r', encoding='utf-8')
         return self
 
@@ -37,7 +37,7 @@ class JTMWriter(TUWriter):
         self._properties = properties
         self._counter: Counter[LanguageDirection] = Counter()
 
-    def __enter__(self):
+    def __enter__(self) -> 'JTMWriter':
         self._file = open(self._path, 'w', encoding='utf-8')
         return self
 
