@@ -78,8 +78,8 @@ class ParallelCorpus(MultilingualCorpus):
     def languages(self) -> Set[LanguageDirection]:
         return {self._language}
 
-    def reader(self) -> ParallelFileLineReader:
+    def reader(self) -> TUReader:
         return ParallelFileLineReader(self._language, self._source, self._target)
 
-    def writer(self) -> ParallelFileLineWriter:
+    def writer(self) -> TUWriter:
         return ParallelFileLineWriter(self._language, self._source, self._target)

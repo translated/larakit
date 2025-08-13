@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Set, TextIO, Tuple
 from typing import Generator, Any
 
 from larakit import shell
-from larakit.corpus import TranslationUnit, Properties, MultilingualCorpus, TUReader
+from larakit.corpus import TranslationUnit, Properties, MultilingualCorpus, TUReader, TUWriter
 from larakit.lang import LanguageDirection
 
 
@@ -30,7 +30,7 @@ class JTMReader(TUReader):
         self._file.close()
 
 
-class JTMWriter(TUReader):
+class JTMWriter(TUWriter):
     def __init__(self, path: str, properties: Optional[Properties] = None):
         self._path = path
         self._file: Optional[TextIO] = None
@@ -139,10 +139,10 @@ class JTMCorpus(MultilingualCorpus):
         last_line = shell.tail_1(self._path).decode("utf-8")
         return JTMCorpus.Footer.parse(last_line)
 
-    def reader(self) -> JTMReader:
+    def reader(self) -> TUReader:
         return JTMReader(self._path)
 
-    def writer(self, properties: Optional[Properties] = None) -> JTMWriter:
+    def writer(self, properties: Optional[Properties] = None) -> TUWriter:
         return JTMWriter(self._path, properties or self.properties)
 
     def __len__(self):
