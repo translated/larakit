@@ -2,7 +2,7 @@ import os
 
 from larakit.corpus import TranslationUnit
 from larakit.corpus.parallel import ParallelCorpus
-from test.corpus._base import TestCorpus
+from test.corpus import TestCorpus
 
 
 class TestParallelCorpus(TestCorpus):
@@ -22,7 +22,7 @@ class TestParallelCorpus(TestCorpus):
         with open(self.target_file_path, 'w', encoding='utf-8') as f:
             f.write('')
 
-        units = self._read_all()
+        units = self._read()
         self.assertEqual(len(units), 0)
 
     def test_writer_normalization(self):
@@ -32,7 +32,7 @@ class TestParallelCorpus(TestCorpus):
         with self.corpus.writer() as writer:
             writer.write(tu_with_newline)
 
-        units = self._read_all()
+        units = self._read()
         self.assertEqual(len(units), 1)
         self.assertEqual(units[0].sentence, 'This is a test.')
         self.assertEqual(units[0].translation, 'Ceci est un test.')
@@ -40,8 +40,13 @@ class TestParallelCorpus(TestCorpus):
     def test_languages_parsing(self):
         self.assertEqual(self.corpus.languages, {self.language_direction})
 
-    def test_writer_and_reader(self):
-        self._test_writer_and_reader()
+    def test_parallel_single_writer_and_reader(self):
+        self._single_write()
+        units = self._read()
+
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0].sentence, self.tu.sentence)
+        self.assertEqual(units[0].translation, self.tu.translation)
 
     def test_filename_parsing(self):
-        self._test_filename_parsing()
+        self.assertEqual(self.corpus.name, self.corpus_name)
