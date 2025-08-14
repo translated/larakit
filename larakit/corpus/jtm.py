@@ -74,7 +74,7 @@ class JTMCorpus(MultilingualCorpus):
                 raise ValueError("The final line does not start with the expected '.footer' prefix.")
 
         @classmethod
-        def from_json(cls, data: Dict[str, Any]):
+        def from_json(cls, data: Dict[str, Any]) -> 'JTMCorpus.Footer':
             counter = Counter({LanguageDirection.from_tuple(lang_tuple): lang_count
                                for lang_tuple, lang_count in data.get("counter", [])})
 
