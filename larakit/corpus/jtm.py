@@ -1,7 +1,7 @@
 import json
 import os
 from collections import Counter
-from typing import Dict, List, Optional, Set, TextIO, Tuple
+from typing import Dict, Optional, Set, TextIO
 from typing import Generator, Any
 
 from larakit import shell
@@ -94,7 +94,7 @@ class JTMCorpus(MultilingualCorpus):
             return self._counter.total()
 
         def to_json(self) -> Dict[str, Any]:
-            data: Dict[str, List[List[Tuple[str, str] | int]] | Dict[str, str | List[str]]] = {
+            data: Dict[str, Any] = {
                 "counter": [[lang.to_json(), count] for lang, count in self.counter.items()]}
             if self._properties:
                 data["properties"] = self._properties.map

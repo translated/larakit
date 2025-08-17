@@ -138,8 +138,8 @@ class TranslationUnit:
     def properties(self) -> Optional[Properties]:
         return self._properties
 
-    def to_json(self) -> Dict[str, Union[str, Tuple[str, str], Dict[str, str | List[str]]]]:
-        data: Dict[str, Union[str, Tuple[str, str], Dict[str, str | List[str]]]] = {
+    def to_json(self) -> Dict[str, Union[str, Tuple[str, str], Dict[str, Union[str, List[str]]]]]:
+        data: Dict[str, Union[str, Tuple[str, str], Dict[str, Union[str, List[str]]]]] = {
             "language": self.language.to_json(), "sentence": self.sentence, "translation": self.translation
         }
 
