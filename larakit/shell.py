@@ -1,16 +1,18 @@
+import atexit
 import logging
 import os
 import subprocess
-from typing import BinaryIO, Generator, List
+from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
 
 DEVNULL = open(os.devnull, 'wb')
+atexit.register(DEVNULL.close)
 
 
 class ShellError(Exception):
-    def __init__(self, command, err_no, message=None):
-        self.command = command
-        self.errno = err_no
-        self.message = message
+    def __init__(self, command: str, err_no: int, message: str = None):
+        self.command: str = command
+        self.errno: int = err_no
+        self.message: Optional[str] = message
 
     def __str__(self):
         string = "Command '%s' failed with exit code %d" % (self.command, self.errno)
@@ -22,7 +24,9 @@ class ShellError(Exception):
         return self.__str__()
 
 
-def shexec(cmd, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, background=False, env=None, cwd=None):
+def shexec(cmd: Union[str, List[str]], stdin: Union[str, IO] = None,
+           stdout: IO = subprocess.PIPE, stderr: IO = subprocess.PIPE, background: bool = False,
+           env: Dict[str, str] = None, cwd: str = None) -> Union[Tuple[str, str], subprocess.Popen]:
     str_cmd = cmd if isinstance(cmd, str) else ' '.join(cmd)
     logging.getLogger('shell_exec').info(str_cmd)
 
