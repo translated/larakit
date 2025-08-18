@@ -1,0 +1,38 @@
+name: Create LaraKit Release
+
+on:
+  workflow_dispatch:
+#  push:  TODO: uncomment when ready
+#    tags:
+#      - v*
+  push:
+    branches:
+      - features/create-release-wf
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout LaraKit
+        uses: actions/checkout@v4
+
+      - name: Setup unit tests
+        run: pip3 install -r requirements.txt
+
+      - name: Run Pylint
+        run: pylint src
+
+      - name: Run unit tests
+        run: python3 tests
+
+      - name: Build LaraKit
+        run: python3 -m build
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        # if: github.ref_type == 'tag'  TODO: uncomment when ready
+        with:
+          name: v1.1.0  # TODO: remove when ready
+          files: dist/*
