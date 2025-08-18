@@ -1,5 +1,6 @@
 # Development tools
 pre-commit
+pylint
 
 # Build and deploy tools
 build
