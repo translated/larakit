@@ -35,4 +35,5 @@ jobs:
         # if: github.ref_type == 'tag'  TODO: uncomment when ready
         with:
           name: v1.1.0  # TODO: remove when ready
+          tag_name: v1.1.0  # TODO: remove when ready
           files: dist/*
