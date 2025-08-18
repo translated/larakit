@@ -3,11 +3,8 @@ name: Test Release
 on:
   workflow_dispatch:
   push:
-    branches:
-      - features/test-release-wf
-#  push:
-#    tags:
-#      - v*
+    tags:
+      - v*
 
 jobs:
   test-release:
