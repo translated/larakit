@@ -6,9 +6,7 @@ import unittest
 def main():
     loader = unittest.TestLoader()
     tests = loader.discover(os.path.dirname(__file__), pattern='[!_]*.py')
-    flat_tests = []
-    for suite_ in tests:
-        flat_tests.extend(list(suite_))
+    flat_tests = [test for suite_ in tests for test in suite_]
 
     sorted_tests = sorted(flat_tests, key=lambda test: test.__class__.__name__)
     suite = unittest.TestSuite(sorted_tests)
