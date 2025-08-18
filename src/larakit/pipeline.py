@@ -16,7 +16,8 @@ from typing import Any, Optional, List, Union, ContextManager
 from larakit import StatefulNamespace
 
 
-def mp_apply(generator, fn, pool_init=None, pool_init_args=None, batch_size=1, ordered=True, threads=None):
+def mp_apply(generator, fn, *, pool_init=None, pool_init_args=None,
+             batch_size: int = 1, ordered: bool = True, threads: int = None):
     cores = threads or multiprocessing.cpu_count()
 
     def loader(generator_, jobs_):
@@ -111,7 +112,7 @@ class PipelineActivity:
         return sorted([method for _, method in inspect.getmembers(cls)
                        if isinstance(method, PipelineActivity.Step) and method.declaring_class == cls.__name__])
 
-    def __init__(self, args, extra_argv=None, input_path: str = None, output_path: str = None, wdir: str = None,
+    def __init__(self, args, *, extra_argv=None, input_path: str = None, output_path: str = None, wdir: str = None,
                  log_file: Union[str, TextIOWrapper] = None, start_step: int = None, delete_on_exit: bool = True):
         self.args = args
         self.extra_argv = extra_argv

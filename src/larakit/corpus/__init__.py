@@ -84,8 +84,8 @@ class Properties:
 
 
 class TranslationUnit:
-    def __init__(self, language: LanguageDirection, sentence: str, translation: str, tuid: Optional[str] = None,
-                 creation_date: Optional[str] = None, change_date: Optional[str] = None,
+    def __init__(self, language: LanguageDirection, sentence: str, translation: str, *,
+                 tuid: Optional[str] = None, creation_date: Optional[str] = None, change_date: Optional[str] = None,
                  properties: Optional[Properties] = None):
         self._language: LanguageDirection = language
         self._sentence: str = sentence
@@ -195,13 +195,13 @@ class TUWriter(ABC):
 
 
 class MultilingualCorpus(ABC):
-    @abstractmethod
     @property
+    @abstractmethod
     def name(self) -> str:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def languages(self) -> Set[LanguageDirection]:
         pass
 

@@ -24,7 +24,7 @@ class ShellError(Exception):
         return self.__str__()
 
 
-def shexec(cmd: Union[str, List[str]], stdin: Union[str, IO] = None,
+def shexec(cmd: Union[str, List[str]], *, stdin: Union[str, IO] = None,
            stdout: IO = subprocess.PIPE, stderr: IO = subprocess.PIPE, background: bool = False,
            env: Dict[str, str] = None, cwd: str = None) -> Union[Tuple[str, str], subprocess.Popen]:
     str_cmd = cmd if isinstance(cmd, str) else ' '.join(cmd)
