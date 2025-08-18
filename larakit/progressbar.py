@@ -1,6 +1,7 @@
 import sys
 import threading
 import time
+from typing import Optional
 
 
 class Color:
@@ -38,48 +39,48 @@ Color.white = Color(7)
 class Progressbar:
     def __init__(self, label: str = None,
                  bar_length: int = 40, refresh_time_in_seconds: float = 1., color: Color = Color.white):
-        self._is_tty = sys.stdout.isatty()
+        self._is_tty: bool = sys.stdout.isatty()
 
         # style
         self.label: str = label
 
         if self._is_tty:
-            self._color = color.foreground
-            self._bar_fill = '█'
-            self._bar_empty = '░'
-            self._line_begin = '\r'
-            self._line_end = ''
+            self._color: str = color.foreground
+            self._bar_fill: str = '█'
+            self._bar_empty: str = '░'
+            self._line_begin: str = '\r'
+            self._line_end: str = ''
 
-            self._esc_color_end = '\033[m'
-            self._esc_hide_cursor = '\033[?25l'
-            self._esc_show_cursor = '\033[?25h'
+            self._esc_color_end: str = '\033[m'
+            self._esc_hide_cursor: str = '\033[?25l'
+            self._esc_show_cursor: str = '\033[?25h'
         else:
-            self._color = ''
-            self._bar_fill = '.'
-            self._bar_empty = ' '
-            self._line_begin = ''
-            self._line_end = '\n'
+            self._color: str = ''
+            self._bar_fill: str = '.'
+            self._bar_empty: str = ' '
+            self._line_begin: str = ''
+            self._line_end: str = '\n'
 
-            self._esc_color_end = ''
-            self._esc_hide_cursor = ''
-            self._esc_show_cursor = ''
+            self._esc_color_end: str = ''
+            self._esc_hide_cursor: str = ''
+            self._esc_show_cursor: str = ''
 
         # state
-        self._refresh_timeout = refresh_time_in_seconds
-        self._bar_length = bar_length
+        self._refresh_timeout: float = refresh_time_in_seconds
+        self._bar_length: int = bar_length
 
-        self._start_time = None
-        self._rendered_progress = -1.0
-        self._progress = 0.0
-        self._background_thread = None
-        self._previous_update_length = 0
+        self._start_time: Optional[float] = None
+        self._rendered_progress: float = -1.0
+        self._progress: float = 0.0
+        self._background_thread: Optional[threading.Timer] = None
+        self._previous_update_length: int = 0
 
-    def _timer_handle(self):
+    def _timer_handle(self) -> None:
         self._update()
         self._background_thread = threading.Timer(self._refresh_timeout, self._timer_handle)
         self._background_thread.start()
 
-    def _render(self, elapsed_time, eta, message=None):
+    def _render(self, elapsed_time: float, eta: float, message: str = None) -> str:
         bar_fill_len = int(self._bar_length * self._progress)
         bar_text = (self._color +
                     (self._bar_fill * bar_fill_len) + (self._bar_empty * (self._bar_length - bar_fill_len)) +
@@ -104,7 +105,7 @@ class Progressbar:
         elements = [progress_text, bar_text, elapsed_text, eta_text, label, message]
         return self._line_begin + ' '.join(x for x in elements if x is not None) + self._line_end
 
-    def _should_update(self):
+    def _should_update(self) -> bool:
         if self._rendered_progress < 0 or self._is_tty:
             return True
         if self._progress == self._rendered_progress:
@@ -114,7 +115,7 @@ class Progressbar:
 
         return self._progress // 0.1 != self._rendered_progress // 0.1
 
-    def _update(self, message=None):
+    def _update(self, message: str = None) -> None:
         if message is None and not self._should_update():
             return
 
@@ -133,19 +134,19 @@ class Progressbar:
 
         self._rendered_progress = self._progress
 
-    def start(self):
+    def start(self) -> None:
         self._start_time = time.time()
         self._timer_handle()
 
     def set_progress(self, progress: float) -> None:
         self._progress = min(1., max(0., progress))
 
-    def cancel(self):
+    def cancel(self) -> None:
         if self._background_thread is not None:
             self._background_thread.cancel()
         sys.stdout.write(self._esc_show_cursor)
 
-    def complete(self):
+    def complete(self) -> None:
         if self._background_thread is not None:
             self._background_thread.cancel()
         self._progress = 1.0
@@ -153,7 +154,7 @@ class Progressbar:
         sys.stdout.write('\n')
         sys.stdout.write(self._esc_show_cursor)
 
-    def abort(self, error: str = None):
+    def abort(self, error: str = None) -> None:
         if self._background_thread is not None:
             self._background_thread.cancel()
         self._update(message=None if error is None else (' ERROR: %s' % error))
