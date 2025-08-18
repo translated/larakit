@@ -19,11 +19,11 @@ class Color:
 
     @property
     def foreground(self) -> str:
-        return '\033[3%dm' % self.__code
+        return f'\033[3{self.__code}m'
 
     @property
     def background(self) -> str:
-        return '\033[4%dm' % self.__code
+        return f'\033[4{self.__code}m'
 
 
 Color.black = Color(0)
@@ -86,10 +86,10 @@ class Progressbar:
                     (self._bar_fill * bar_fill_len) + (self._bar_empty * (self._bar_length - bar_fill_len)) +
                     self._esc_color_end)
 
-        progress_text = '{:.1f}%'.format(round(100.0 * self._progress, 1)).rjust(6)
+        progress_text = f'{round(100.0 * self._progress, 1):.1f}%'.rjust(6)
 
-        elapsed_text = '%02d:%02d' % (int(elapsed_time / 60), elapsed_time % 60)
-        eta_text = 'ETA %02d:%02d:%02d' % (int(eta / 3600), int(eta / 60) % 60, eta % 60) if eta > 0 else None
+        elapsed_text = f'{int(elapsed_time / 60):02d}:{elapsed_time % 60:02d}'
+        eta_text = f'ETA {int(eta / 3600):02d}:{int(eta / 60) % 60:02d}:{eta % 60:02d}' if eta > 0 else None
 
         label = None
         if self.label is not None:
@@ -110,7 +110,7 @@ class Progressbar:
             return True
         if self._progress == self._rendered_progress:
             return False
-        if self._progress == 0 or self._progress == 1:
+        if self._progress in (0, 1):
             return True
 
         return self._progress // 0.1 != self._rendered_progress // 0.1
@@ -157,6 +157,6 @@ class Progressbar:
     def abort(self, error: str = None) -> None:
         if self._background_thread is not None:
             self._background_thread.cancel()
-        self._update(message=None if error is None else (' ERROR: %s' % error))
+        self._update(message=None if error is None else f' ERROR: {error}')
         sys.stdout.write('\n')
         sys.stdout.write(self._esc_show_cursor)
