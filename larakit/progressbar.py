@@ -138,7 +138,7 @@ class Progressbar:
         self._timer_handle()
 
     def set_progress(self, progress: float) -> None:
-        self._progress = progress
+        self._progress = min(1., max(0., progress))
 
     def cancel(self):
         if self._background_thread is not None:
