@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Dict, List, Union, Optional, Iterable, Set, Tuple, Generator
 
 from larakit.lang import LanguageDirection
@@ -168,7 +168,7 @@ class TranslationUnit:
         return f'[{self.language}] <{self.sentence}> ||| <{self.translation}>'
 
 
-class TUReader:
+class TUReader(ABC):
     @abstractmethod
     def __enter__(self) -> 'TUReader':
         pass
@@ -182,7 +182,7 @@ class TUReader:
         pass
 
 
-class TUWriter:
+class TUWriter(ABC):
     @abstractmethod
     def __enter__(self) -> 'TUWriter':
         pass
@@ -196,7 +196,7 @@ class TUWriter:
         pass
 
 
-class MultilingualCorpus:
+class MultilingualCorpus(ABC):
     @abstractmethod
     def name(self) -> str:
         pass
