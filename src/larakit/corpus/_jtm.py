@@ -5,7 +5,7 @@ from typing import Dict, Optional, Set, TextIO
 from typing import Generator, Any
 
 from larakit import shell
-from larakit.corpus import TranslationUnit, Properties, MultilingualCorpus, TUReader, TUWriter
+from larakit.corpus._base import TranslationUnit, Properties, MultilingualCorpus, TUReader, TUWriter
 from larakit.lang import LanguageDirection
 
 

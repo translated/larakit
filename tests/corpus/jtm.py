@@ -1,8 +1,7 @@
 import os
 
 from corpus import TestCorpus
-from larakit.corpus import Properties
-from larakit.corpus.jtm import JTMCorpus
+from larakit.corpus import Properties, JTMCorpus
 
 
 class TestJTMCorpus(TestCorpus):

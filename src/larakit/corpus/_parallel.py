@@ -1,7 +1,7 @@
 import os
 from typing import Set, Optional, TextIO, Generator
 
-from larakit.corpus import MultilingualCorpus, TUReader, TranslationUnit, TUWriter
+from larakit.corpus._base import MultilingualCorpus, TUReader, TranslationUnit, TUWriter
 from larakit.lang import LanguageDirection
 
 

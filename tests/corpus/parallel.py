@@ -1,8 +1,7 @@
 import os
 
 from corpus import TestCorpus
-from larakit.corpus import TranslationUnit
-from larakit.corpus.parallel import ParallelCorpus
+from larakit.corpus import TranslationUnit, ParallelCorpus
 
 
 class TestParallelCorpus(TestCorpus):
