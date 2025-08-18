@@ -1,1 +1,7 @@
-setuptools~=78.1.0
+# Development tools
+pre-commit
+
+# Build and deploy tools
+build
+twine
+virtualenv
