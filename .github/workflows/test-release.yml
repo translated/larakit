@@ -1,0 +1,22 @@
+name: Test Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - v*
+
+jobs:
+  test-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout LaraKit
+        uses: actions/checkout@v4
+
+      - name: Setup unit tests
+        run: pip3 install -r requirements.txt
+
+      - name: Run unit tests
+        run: python3 test
