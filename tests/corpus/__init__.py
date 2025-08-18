@@ -2,8 +2,8 @@ import tempfile
 import unittest
 from typing import List, Optional
 
+from larakit import Language, LanguageDirection
 from larakit.corpus import MultilingualCorpus, TranslationUnit
-from larakit.lang import Language, LanguageDirection
 
 
 class TestCorpus(unittest.TestCase):

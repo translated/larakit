@@ -4,9 +4,8 @@ from collections import Counter
 from typing import Dict, Optional, Set, TextIO
 from typing import Generator, Any
 
-from larakit import shell
+from larakit import shell, LanguageDirection
 from larakit.corpus._base import TranslationUnit, Properties, MultilingualCorpus, TUReader, TUWriter
-from larakit.lang import LanguageDirection
 
 
 class JTMReader(TUReader):

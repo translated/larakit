@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABC
 from typing import Dict, List, Union, Optional, Iterable, Set, Tuple, Generator
 
-from larakit.lang import LanguageDirection
+from larakit import LanguageDirection
 
 
 class Properties:
