@@ -67,14 +67,6 @@ def shexec(cmd: Union[str, List[str]], *, stdin: Union[str, IO] = None,
     return stdout_dump, stderr_dump
 
 
-def gpu_devices() -> List[int]:
-    try:
-        output, _ = shexec('nvidia-smi --query-gpu=index --format=csv,noheader,nounits')
-        return [int(index) for index in output.splitlines()]
-    except ShellError:
-        return []
-
-
 def tail_1(path: str) -> bytes:
     file_size = os.path.getsize(path)
 
@@ -131,3 +123,19 @@ def link(file_path: str, dest_path: str, symbolic: bool = False, overwrite: bool
         os.link(file_path, dest_path)
 
     return dest_path
+
+
+def nvidia_devices() -> List[int]:
+    try:
+        output, _ = shexec('nvidia-smi --query-gpu=index --format=csv,noheader,nounits')
+        return [int(index) for index in output.splitlines()]
+    except ShellError:
+        return []
+
+
+def nvidia_device_count() -> int:
+    return len(nvidia_devices())
+
+
+def nvidia_has_device() -> bool:
+    return nvidia_device_count() > 0
