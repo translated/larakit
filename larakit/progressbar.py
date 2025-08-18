@@ -141,18 +141,21 @@ class Progressbar:
         self._progress = progress
 
     def cancel(self):
-        self._background_thread.cancel()
+        if self._background_thread is not None:
+            self._background_thread.cancel()
         sys.stdout.write(self._esc_show_cursor)
 
     def complete(self):
-        self._background_thread.cancel()
+        if self._background_thread is not None:
+            self._background_thread.cancel()
         self._progress = 1.0
         self._update()
         sys.stdout.write('\n')
         sys.stdout.write(self._esc_show_cursor)
 
     def abort(self, error: str = None):
-        self._background_thread.cancel()
+        if self._background_thread is not None:
+            self._background_thread.cancel()
         self._update(message=None if error is None else (' ERROR: %s' % error))
         sys.stdout.write('\n')
         sys.stdout.write(self._esc_show_cursor)
