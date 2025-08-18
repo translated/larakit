@@ -5,14 +5,14 @@ from typing import Optional
 
 
 class Color:
-    black: 'Color' = None
-    red: 'Color' = None
-    green: 'Color' = None
-    yellow: 'Color' = None
-    blue: 'Color' = None
-    magenta: 'Color' = None
-    cyan: 'Color' = None
-    white: 'Color' = None
+    black: 'Color'
+    red: 'Color'
+    green: 'Color'
+    yellow: 'Color'
+    blue: 'Color'
+    magenta: 'Color'
+    cyan: 'Color'
+    white: 'Color'
 
     def __init__(self, code: int) -> None:
         self.__code: int = code
