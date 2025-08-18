@@ -18,11 +18,11 @@ class Color:
         self.__code: int = code
 
     @property
-    def foreground(self):
+    def foreground(self) -> str:
         return '\033[3%dm' % self.__code
 
     @property
-    def background(self):
+    def background(self) -> str:
         return '\033[4%dm' % self.__code
 
 
