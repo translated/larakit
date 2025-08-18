@@ -9,9 +9,9 @@ class TestJTMCorpus(TestCorpus):
     def setUp(self):
         super().setUp()
 
-        self.jtm_filename = f'{self.corpus_name}.jtm'
-        self.jtm_path = os.path.join(self.temp_dir.name, self.jtm_filename)
-        self.corpus = JTMCorpus(path=self.jtm_path)
+        self.jtm_filename: str = f'{self.corpus_name}.jtm'
+        self.jtm_path: str = os.path.join(self.temp_dir.name, self.jtm_filename)
+        self.corpus: JTMCorpus = JTMCorpus(path=self.jtm_path)
 
     def test_writer_and_reader(self):
         properties = Properties()
