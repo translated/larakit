@@ -4,7 +4,7 @@ import os
 import subprocess
 from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
 
-DEVNULL = open(os.devnull, 'wb')
+DEVNULL = open(os.devnull, 'wb')  # pylint:disable=consider-using-with
 atexit.register(DEVNULL.close)
 
 
@@ -15,7 +15,7 @@ class ShellError(Exception):
         self.message: Optional[str] = message
 
     def __str__(self):
-        string = "Command '%s' failed with exit code %d" % (self.command, self.errno)
+        string = f"Command '{self.command}' failed with exit code {self.errno}"
         if self.message is not None:
             string += ': ' + repr(self.message)
         return string
@@ -41,6 +41,7 @@ def shexec(cmd: Union[str, List[str]], stdin: Union[str, IO] = None,
         stdin = subprocess.PIPE
 
     is_shell = isinstance(cmd, str)
+    # pylint:disable=consider-using-with
     process = subprocess.Popen(cmd, stdin=stdin, stdout=stdout, stderr=stderr, shell=is_shell, env=env, cwd=cwd)
 
     stdout_dump = None
@@ -55,16 +56,15 @@ def shexec(cmd: Union[str, List[str]], stdin: Union[str, IO] = None,
 
     if background:
         return process
-    else:
-        if stdout_dump is not None:
-            stdout_dump = stdout_dump.decode('utf-8')
-        if stderr_dump is not None:
-            stderr_dump = stderr_dump.decode('utf-8')
 
-        if return_code != 0:
-            raise ShellError(str_cmd, return_code, stderr_dump)
-        else:
-            return stdout_dump, stderr_dump
+    if stdout_dump is not None:
+        stdout_dump = stdout_dump.decode('utf-8')
+    if stderr_dump is not None:
+        stderr_dump = stderr_dump.decode('utf-8')
+
+    if return_code != 0:
+        raise ShellError(str_cmd, return_code, stderr_dump)
+    return stdout_dump, stderr_dump
 
 
 def gpu_devices() -> List[int]:
@@ -87,10 +87,9 @@ def tail_1(path: str) -> bytes:
 
             if b'\n' in last_line:
                 return last_line[last_line.rindex(b'\n') + 1:]
-            elif window_size >= file_size:
+            if window_size >= file_size:
                 return last_line
-            else:
-                window_size *= 2
+            window_size *= 2
 
 
 def lc(filename: str, block_size: int = 65536) -> int:

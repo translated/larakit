@@ -14,7 +14,7 @@ def main():
 
 
 if __name__ == "__main__":
-    __larakit_dir__ = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
-    sys.path.insert(0, __larakit_dir__)
+    __src_dir__ = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
+    sys.path.insert(0, __src_dir__)
 
     main()

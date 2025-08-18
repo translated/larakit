@@ -70,8 +70,8 @@ class JTMCorpus(MultilingualCorpus):
             if line.startswith(cls.FOOTER_LINE_BEGIN):
                 json_part = line[len(cls.FOOTER_LINE_BEGIN):].strip()
                 return cls.from_json(json.loads(json_part))
-            else:
-                raise ValueError("The final line does not start with the expected '.footer' prefix.")
+
+            raise ValueError("The final line does not start with the expected '.footer' prefix.")
 
         @classmethod
         def from_json(cls, data: Dict[str, Any]) -> 'JTMCorpus.Footer':

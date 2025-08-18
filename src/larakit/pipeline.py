@@ -32,8 +32,7 @@ def mp_apply(generator, fn, pool_init=None, pool_init_args=None, batch_size=1, o
     with multiprocessing.Pool(initializer=pool_init, initargs=pool_init_args, processes=cores) as pool:
         imap_f = pool.imap if ordered else pool.imap_unordered
 
-        for result in imap_f(fn, iter(jobs.get, None), chunksize=batch_size):
-            yield result
+        yield from imap_f(fn, iter(jobs.get, None), chunksize=batch_size)
 
     loader_thread.join()
 
@@ -63,16 +62,16 @@ def _pp_time(elapsed):
     if elapsed > 86400:  # days
         d = int(elapsed / 86400)
         elapsed -= d * 86400
-        parts.append('%dd' % d)
+        parts.append(f'{d}d')
     if elapsed > 3600:  # hours
         h = int(elapsed / 3600)
         elapsed -= h * 3600
-        parts.append('%dh' % h)
+        parts.append(f'{h}h')
     if elapsed > 60:  # minutes
         m = int(elapsed / 60)
         elapsed -= m * 60
-        parts.append('%dm' % m)
-    parts.append('%ds' % elapsed)
+        parts.append(f'{m}m')
+    parts.append(f'{elapsed}s')
     return ' '.join(parts)
 
 
@@ -105,7 +104,7 @@ class PipelineActivity:
             return self._description
 
         def __repr__(self) -> str:
-            return 'Step(line=%d, id=%s, desc=%s)' % (self._line_no, self.id, self._description)
+            return f'Step(line={self._line_no}, id={self.id}, desc={self._description})'
 
     @classmethod
     def steps(cls) -> List['PipelineActivity.Step']:
@@ -139,7 +138,8 @@ class PipelineActivity:
         self.log_file = log_file or os.path.join(self._wdir, self.__class__.__name__ + '.log')
 
         if isinstance(self.log_file, str):
-            _log_fobj = open(self.log_file, 'a')
+            # pylint:disable=consider-using-with
+            _log_fobj = open(self.log_file, 'ab')
             self._close_log_on_exit = True
         else:
             _log_fobj = self.log_file
@@ -170,7 +170,7 @@ class PipelineActivity:
         return path
 
     def native_logging(self, stream=sys.stderr) -> ContextManager[Any]:
-        class _NativeLogger(object):
+        class _NativeLogger:
             def __init__(self, from_fd, to_fd):
                 self._from_fd = from_fd
                 self._to_fd = to_fd
@@ -205,40 +205,12 @@ class PipelineActivity:
             self.state.pipeline = self.state.pipeline or []
 
             for i, current_step in enumerate(self._steps):
-                step_desc = '(%d/%d) %s' % (i + 1, len(self._steps), str(current_step))
+                step_desc = f'({i + 1}/{len(self._steps)}) {current_step}...'
 
-                print('{:<65s}'.format('%s...' % step_desc), end='', flush=True)
+                print(f'{step_desc:<65s}', end='', flush=True)
 
                 if self.state.step_no < i:
-                    try:
-                        self._logger.info('Step "%s" started' % current_step.id)
-                        begin = time.time()
-
-                        input_path = self._input_path if len(self.state.pipeline) == 0 else self.state.pipeline[-1]
-                        output_path = None
-                        if current_step.arg_count > 1:
-                            if i == len(self._steps) - 1 and self._output_path:
-                                if os.path.exists(self._output_path):
-                                    shutil.rmtree(self._output_path)
-                                os.makedirs(self._output_path)
-
-                                output_path = self._output_path
-                            else:
-                                output_path = self.wdir(f'step_{current_step.name}')
-
-                        current_step.invoke(self, input_path, output_path)
-
-                        if output_path is not None:
-                            self.state.pipeline.append(output_path)
-
-                        elapsed_time = time.time() - begin
-                        self._logger.info('Step "%s" completed in %s' % (current_step.id, _pp_time(elapsed_time)))
-
-                        print('DONE in %s' % _pp_time(elapsed_time), flush=True)
-                    except SkipException:
-                        self._logger.info('Step "%s" skipped' % current_step.id)
-                        print('SKIPPED', flush=True)
-
+                    self._run_step(i, current_step)
                     self.state.step_no = i
                     self.save_state()
                 else:
@@ -251,3 +223,33 @@ class PipelineActivity:
                 self._log_fobj.close()
             if self._temp_dir is not None and os.path.isdir(self._temp_dir):
                 shutil.rmtree(self._temp_dir, ignore_errors=True)
+
+    def _run_step(self, i, current_step):
+        try:
+            self._logger.info('Step "%s" started', current_step.id)
+            begin = time.time()
+
+            input_path = self._input_path if len(self.state.pipeline) == 0 else self.state.pipeline[-1]
+            output_path = None
+            if current_step.arg_count > 1:
+                if i == len(self._steps) - 1 and self._output_path:
+                    if os.path.exists(self._output_path):
+                        shutil.rmtree(self._output_path)
+                    os.makedirs(self._output_path)
+
+                    output_path = self._output_path
+                else:
+                    output_path = self.wdir(f'step_{current_step.name}')
+
+            current_step.invoke(self, input_path, output_path)
+
+            if output_path is not None:
+                self.state.pipeline.append(output_path)
+
+            elapsed_time = time.time() - begin
+            self._logger.info('Step "%s" completed in %s', current_step.id, _pp_time(elapsed_time))
+
+            print(f'DONE in {_pp_time(elapsed_time)}', flush=True)
+        except SkipException:
+            self._logger.info('Step "%s" skipped', current_step.id)
+            print('SKIPPED', flush=True)

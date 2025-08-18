@@ -55,19 +55,17 @@ class Properties:
         value = self.map.get(key)
         if value is None:
             return None
-        elif isinstance(value, list):
+        if isinstance(value, list):
             return value[0]
-        else:
-            return value
+        return value
 
     def values(self, key: str) -> Optional[List[str]]:
         value = self.map.get(key)
         if value is None:
             return None
-        elif isinstance(value, list):
+        if isinstance(value, list):
             return value[:]
-        else:
-            return [value]
+        return [value]
 
     def remove(self, key: str) -> None:
         self.map.pop(key, None)
@@ -198,10 +196,12 @@ class TUWriter(ABC):
 
 class MultilingualCorpus(ABC):
     @abstractmethod
+    @property
     def name(self) -> str:
         pass
 
     @abstractmethod
+    @property
     def languages(self) -> Set[LanguageDirection]:
         pass
 
