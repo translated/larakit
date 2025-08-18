@@ -1,8 +1,8 @@
 import os
 from typing import Set, Optional, TextIO, Generator
 
-from larakit.corpus import MultilingualCorpus, TUReader, TranslationUnit, TUWriter
-from larakit.lang import LanguageDirection
+from larakit import LanguageDirection
+from larakit.corpus._base import MultilingualCorpus, TUReader, TranslationUnit, TUWriter
 
 
 class ParallelCorpusReader(TUReader):
