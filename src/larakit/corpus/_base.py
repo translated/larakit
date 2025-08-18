@@ -45,7 +45,7 @@ class Properties:
     def keys(self) -> Iterable[str]:
         return self.map.keys()
 
-    def get(self, key: str) -> Union[str, List[str], None]:
+    def get(self, key: str) -> Optional[Union[str, List[str]]]:
         return self.map.get(key)
 
     def size(self) -> int:
