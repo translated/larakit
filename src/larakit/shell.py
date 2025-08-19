@@ -1,6 +1,7 @@
 import atexit
 import logging
 import os
+import shutil
 import subprocess
 from collections.abc import Callable
 from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
@@ -101,6 +102,14 @@ def lc(filename: str, block_size: int = 65536) -> int:
         for block in _blocks(stream):
             count += block.count(b'\n')
         return count
+
+
+def cat(files: List[str], output: str, *, buffer_size: int = 10 * 1024 * 1024, append: bool = False):
+    mode = 'wb' if not append else 'ab'
+    with open(output, mode) as blob:
+        for f in files:
+            with open(f, 'rb') as source:
+                shutil.copyfileobj(source, blob, buffer_size)
 
 
 def link(file_path: str, dest_path: str, symbolic: bool = False, overwrite: bool = True) -> str:
