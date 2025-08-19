@@ -2,6 +2,7 @@ import atexit
 import logging
 import os
 import subprocess
+from collections.abc import Callable
 from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
 
 DEVNULL = open(os.devnull, 'wb')  # pylint:disable=consider-using-with
@@ -123,6 +124,19 @@ def link(file_path: str, dest_path: str, symbolic: bool = False, overwrite: bool
         os.link(file_path, dest_path)
 
     return dest_path
+
+
+def tar_gz(output_archive: str, input_dir: str, *,
+           file_filter: Callable[[str], bool] = None, use_pigz: bool = True) -> None:
+    filenames = [f for f in os.listdir(input_dir) if file_filter is None or file_filter(os.path.join(input_dir, f))]
+
+    cmd = ['tar', '-cf', output_archive]
+    if use_pigz:
+        cmd.append('--use-compress-program=pigz')
+    cmd.extend(['--directory', input_dir])
+    cmd.extend(filenames)
+
+    shexec(cmd)
 
 
 def nvidia_devices() -> List[int]:
