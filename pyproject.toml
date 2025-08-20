@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "larakit"
+dynamic = ["version"]
+authors = [
+    { name = "Translated", email = "support@laratranslate.com" },
+]
+maintainers = [
+    { name = "Translated", email = "support@laratranslate.com" },
+]
+description = "Python common components for Lara"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+
+[tool.setuptools.dynamic]
+version = { attr = "larakit.__version__" }
+
+[project.urls]
+Homepage = "https://github.com/translated/larakit"
+Source = "https://github.com/translated/larakit"

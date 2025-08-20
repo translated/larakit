@@ -41,7 +41,7 @@ class Language:
     def _parse_region(string: str) -> Optional[str]:
         if len(string) == 2 and Language._is_alpha(string):
             return string.upper()
-        elif len(string) == 3 and Language._is_digit(string):
+        if len(string) == 3 and Language._is_digit(string):
             return string
         return None
 

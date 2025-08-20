@@ -30,7 +30,7 @@ class Namespace:
         def parse(val):
             if isinstance(val, dict):
                 return Namespace(**val)
-            elif isinstance(val, list):
+            if isinstance(val, list):
                 return [parse(v) for v in val]
             return val
 
@@ -55,7 +55,7 @@ class Namespace:
         def _to_json(value):
             if isinstance(value, Namespace):
                 return value.to_json()
-            elif isinstance(value, list):
+            if isinstance(value, list):
                 return [_to_json(v) for v in value]
             return value
 
