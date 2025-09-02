@@ -69,6 +69,20 @@ def shexec(cmd: Union[str, List[str]], *, stdin: Union[str, IO] = None,
     return stdout_dump, stderr_dump
 
 
+def safe_open(path: str, mode: str = 'r', encoding: str = 'utf-8') -> Optional[IO]:
+    if path is None:
+        return None
+
+    if 'w' in mode or 'a' in mode:
+        folder = os.path.dirname(path)
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+    elif not os.path.isfile(path):
+        return None
+
+    return open(path, mode=mode, encoding=encoding)
+
+
 def tail_1(path: str) -> bytes:
     file_size = os.path.getsize(path)
 
