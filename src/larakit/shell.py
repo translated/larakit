@@ -1,8 +1,10 @@
 import atexit
 import logging
 import os
+import re
 import shutil
 import subprocess
+import unicodedata
 from collections.abc import Callable
 from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
 
@@ -81,6 +83,19 @@ def safe_open(path: str, mode: str = 'r', encoding: str = 'utf-8') -> Optional[I
         return None
 
     return open(path, mode=mode, encoding=encoding)
+
+
+def sanitize_filename(filename: str, allow_unicode: bool = False) -> str:
+    filename = str(filename).strip()
+
+    if allow_unicode:
+        filename = unicodedata.normalize('NFKC', filename)
+    else:
+        filename = (unicodedata.normalize('NFKD', filename)
+                    .encode('ascii', 'ignore')
+                    .decode('ascii'))
+
+    return re.sub(r'[^\w\s\-.]', '_', filename)
 
 
 def tail_1(path: str) -> bytes:
