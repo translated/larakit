@@ -88,6 +88,9 @@ class Progressbar:
 
         progress_text = f'{round(100.0 * self._progress, 1):.1f}%'.rjust(6)
 
+        elapsed_time = int(round(elapsed_time))
+        eta = int(round(eta))
+
         elapsed_text = f'{int(elapsed_time / 60):02d}:{elapsed_time % 60:02d}'
         eta_text = f'ETA {int(eta / 3600):02d}:{int(eta / 60) % 60:02d}:{eta % 60:02d}' if eta > 0 else None
 
