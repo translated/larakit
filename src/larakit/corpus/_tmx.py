@@ -28,13 +28,6 @@ def _attr_escape(value: str) -> str:
     return xml_escape(value, {'"': '&quot;'})
 
 
-def _is_equal_or_more_specific(a: str, b: str) -> bool:
-    # True if 'a' is equal or more specific than 'b' (e.g., 'en-US' >= 'en')
-    a_l = a.lower()
-    b_l = b.lower()
-    return a_l == b_l or a_l.startswith(b_l + "-")
-
-
 class TMXReader(TUReader):
     @dataclass
     class _TUVData:
@@ -233,7 +226,7 @@ class TMXWriter(TUWriter):
         self._file.write('  <body>\n')
         self._header_written = True
 
-    def _write_tuv(self, lang: Language, segment: str):
+    def _write_tuv(self, lang: Language, segment: str) -> None:
         seg_text = _normalize_segment(segment)
         self._file.write(f'      <tuv xml:lang="{_attr_escape(lang.tag)}"><seg>{xml_escape(seg_text)}</seg></tuv>\n')
 
