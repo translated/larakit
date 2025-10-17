@@ -145,24 +145,15 @@ class TMXReader(TUReader):
                 properties=Properties(tu_props) if tu_props.size() > 0 else None)
 
     def __iter__(self) -> Generator[TranslationUnit, None, None]:
-        """
-        Iterates over the TMX file, yielding TranslationUnit objects.
-        This method uses a memory-efficient XML stream parser.
-        """
         if self._file is None:
-            raise IOError("Reader is not open. Use 'with TMXReader(...) as reader:' syntax.")
+            raise IOError("Reader is not open.")
 
-        self._file.seek(0)  # Ensure we read from the beginning
         context = ET.iterparse(self._file, events=("start", "end"))
-
-        # Efficiently parse the header first without loading the whole file
         self._parse_header(context)
-
-        # Process the body, yielding TUs as they are fully parsed
         for event, elem in context:
             if event == 'end' and _local_name(elem.tag) == 'tu':
                 yield from self._translation_units_from_element(elem)
-                elem.clear()  # Free memory after processing the element
+                elem.clear()
 
     @property
     def header_properties(self) -> Properties:
@@ -191,61 +182,47 @@ class TMXWriter(TUWriter):
             self._file.write("  </body>\n</tmx>\n")
             self._file.close()
 
-    def add_property(self, key: str, value: str):
+    def add_property(self, key: str, value: str) -> None:
         if self._header_properties is None:
             self._header_properties = Properties()
         self._header_properties.put(key, value)
 
-    def write(self, tu: TranslationUnit):
+    def write(self, tu: TranslationUnit) -> None:
         if self._file is None:
             raise IOError("Writer is not open.")
 
-        src_tag, tgt_tag = self._lang_tuple(tu.language)
-
+        src_lang, tgt_lang = tu.language.source, tu.language.target
         if not self._header_written:
-            self._write_header(src_tag)
+            self._write_header(src_lang)
 
-        # TU start with attributes
-        attrs = []
-        if tu.tuid is not None:
+        attrs = ['datatype="plaintext"', f'srclang="{_attr_escape(src_lang.tag)}"']
+        if tu.tuid:
             attrs.append(f'tuid="{_attr_escape(tu.tuid)}"')
-        if src_tag:
-            attrs.append(f'srclang="{_attr_escape(src_tag)}"')
-        attrs.append('datatype="plaintext"')
-        if tu.creation_date is not None:
+        if tu.creation_date:
             attrs.append(f'creationdate="{_attr_escape(tu.creation_date)}"')
-        if tu.change_date is not None:
+        if tu.change_date:
             attrs.append(f'changedate="{_attr_escape(tu.change_date)}"')
 
         self._file.write(f'    <tu {" ".join(attrs)}>\n')
-
         # TU-level properties
         if tu.properties is not None:
             for key in tu.properties.keys():
                 values = tu.properties.values(key) or []
                 for val in values:
                     self._file.write(f'      <prop type="{_attr_escape(key)}">{xml_escape(val)}</prop>\n')
-
         # TUVs
-        self._write_tuv(src_tag, tu.sentence)
-        self._write_tuv(tgt_tag, tu.translation)
-
+        self._write_tuv(src_lang, tu.sentence)
+        self._write_tuv(tgt_lang, tu.translation)
         self._file.write("    </tu>\n")
 
-    def _write_header(self, srclang: Optional[str]):
+    def _write_header(self, srclang: Optional[Language]) -> None:
         self._file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         self._file.write('<tmx version="1.4">\n')
-        header_attrs = [
-            'datatype="plaintext"',
-            'o-tmf="LaraKit"',
-            'segtype="sentence"',
-            'adminlang="en"',
-        ]
+        header_attrs = ['datatype="plaintext"', 'o-tmf="LaraKit"', 'segtype="sentence"', 'adminlang="en"']
         if srclang:
-            header_attrs.append(f'srclang="{_attr_escape(srclang)}"')
+            header_attrs.append(f'srclang="{_attr_escape(srclang.tag)}"')
 
         self._file.write(f'  <header {" ".join(header_attrs)}>\n')
-
         if self._header_properties is not None:
             for key in self._header_properties.keys():
                 values = self._header_properties.values(key) or []
@@ -256,23 +233,9 @@ class TMXWriter(TUWriter):
         self._file.write('  <body>\n')
         self._header_written = True
 
-    def _write_tuv(self, lang: Optional[str], segment: str):
-        # xml:lang is a reserved prefix; no need to declare namespace
+    def _write_tuv(self, lang: Language, segment: str):
         seg_text = _normalize_segment(segment)
-        if lang is None:
-            lang = ""  # be robust, though SRX expects lang; empty makes it obvious
-        self._file.write(f'      <tuv xml:lang="{_attr_escape(lang)}"><seg>{xml_escape(seg_text)}</seg></tuv>\n')
-
-    @staticmethod
-    def _lang_tuple(direction: LanguageDirection) -> Tuple[str, str]:
-        # Rely on to_json() which returns a (src, tgt) tuple in existing codebase
-        data = direction.to_json()
-        if isinstance(data, (list, tuple)) and len(data) == 2:
-            return data[0], data[1]
-        # Fallback: try attributes
-        src = getattr(direction, "source", None)
-        tgt = getattr(direction, "target", None)
-        return src or "", tgt or ""
+        self._file.write(f'      <tuv xml:lang="{_attr_escape(lang.tag)}"><seg>{xml_escape(seg_text)}</seg></tuv>\n')
 
 
 class TMXCorpus(MultilingualCorpus):
@@ -292,49 +255,44 @@ class TMXCorpus(MultilingualCorpus):
         return self._name
 
     @property
-    def languages(self) -> Set[LanguageDirection]:
+    def languages(self) -> Optional[Set[LanguageDirection]]:
+        if not os.path.exists(self._path):
+            return None
+
         if self._languages is None:
             langs: Set[LanguageDirection] = set()
-            try:
-                with TMXReader(self._path) as r:
-                    for tu in r:
-                        langs.add(tu.language)
-            except FileNotFoundError:
-                langs = set()
+            with TMXReader(self._path) as r:
+                for tu in r:
+                    langs.add(tu.language)
             self._languages = langs
+
         return self._languages
 
     def reader(self) -> TMXReader:
         return TMXReader(self._path)
 
     def writer(self, properties: Optional[Properties] = None) -> TMXWriter:
-        header_props = properties or self.properties
-        return TMXWriter(self._path, header_props)
+        return TMXWriter(self._path, properties or self.properties)
 
     @property
     def properties(self) -> Optional[Properties]:
+        if not os.path.exists(self._path):
+            return None
+
         if self._header_properties is not None:
             return self._header_properties
-        try:
-            with TMXReader(self._path) as r:
-                # Consume nothing; header props are exposed after initialization via __iter__ setup
-                # But TMXReader collects header props during iteration. Force a small parse to header:
-                for _ in r:
-                    # After first iteration header is surely parsed; we can break immediately
-                    break
-                self._header_properties = r.header_properties if r.header_properties.size() > 0 else None
-        except FileNotFoundError:
-            self._header_properties = None
+        with TMXReader(self._path) as r:
+            for _ in r:
+                break
+            self._header_properties = r.header_properties if r.header_properties.size() > 0 else None
+
         return self._header_properties
 
     def __len__(self) -> int:
+        if not os.path.exists(self._path):
+            return 0
+
         if self._length is None:
-            count = 0
-            try:
-                with TMXReader(self._path) as r:
-                    for _ in r:
-                        count += 1
-            except FileNotFoundError:
-                count = 0
-            self._length = count
+            with TMXReader(self._path) as r:
+                self._length = sum(1 for _ in r)
         return self._length
