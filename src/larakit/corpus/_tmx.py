@@ -170,7 +170,7 @@ class TMXReader(TUReader):
 
                             yield TranslationUnit(language=lang, sentence=source_tuv["text"], translation=t["text"],
                                                   tuid=tu_attrs.get("tuid"), creation_date=creation, change_date=change,
-                                                  properties=(Properties(tu_properties) if tu_properties else None))
+                                                  properties=Properties(tu_properties) if tu_properties else None)
 
                     elem.clear()
                     tu_attrs = {}
@@ -193,9 +193,9 @@ class TMXReader(TUReader):
 
 class TMXWriter(TUWriter):
     def __init__(self, path: str, header_properties: Optional[Properties] = None):
-        self._path = path
+        self._path: str = path
         self._file: Optional[TextIO] = None
-        self._header_written = False
+        self._header_written: bool = False
         self._header_properties = header_properties
 
     def __enter__(self) -> 'TMXWriter':
@@ -203,7 +203,6 @@ class TMXWriter(TUWriter):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # Ensure header/body exist even if no TU was written
         if self._file:
             if not self._header_written:
                 self._write_header(None)
@@ -252,7 +251,6 @@ class TMXWriter(TUWriter):
         self._file.write("    </tu>\n")
 
     def _write_header(self, srclang: Optional[str]):
-        # Minimal TMX 1.4 header with optional srclang and optional properties
         self._file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         self._file.write('<tmx version="1.4">\n')
         header_attrs = [
@@ -302,6 +300,10 @@ class TMXCorpus(MultilingualCorpus):
         self._languages: Optional[Set[LanguageDirection]] = None
         self._length: Optional[int] = None
         self._header_properties: Optional[Properties] = None
+
+    @property
+    def path(self) -> str:
+        return self._path
 
     @property
     def name(self) -> str:

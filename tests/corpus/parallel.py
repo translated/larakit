@@ -1,6 +1,7 @@
 import os
 
 from corpus import TestCorpus
+
 from larakit.corpus import TranslationUnit, ParallelCorpus
 
 
@@ -40,12 +41,7 @@ class TestParallelCorpus(TestCorpus):
         self.assertEqual(self.corpus.languages, {self.language_direction})
 
     def test_parallel_single_writer_and_reader(self):
-        self._single_write()
-        units = self._read()
-
-        self.assertEqual(len(units), 1)
-        self.assertEqual(units[0].sentence, self.tu.sentence)
-        self.assertEqual(units[0].translation, self.tu.translation)
+        self._test_parallel_single_writer_and_reader()
 
     def test_filename_parsing(self):
         self.assertEqual(self.corpus.name, self.corpus_name)

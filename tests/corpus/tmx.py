@@ -2,16 +2,16 @@ import os
 
 from corpus import TestCorpus
 
-from larakit.corpus import JTMCorpus
+from larakit.corpus import TMXCorpus
 
 
-class TestJTMCorpus(TestCorpus):
+class TestTMXCorpus(TestCorpus):
     def setUp(self):
         super().setUp()
 
-        self.jtm_filename: str = f'{self.corpus_name}.jtm'
-        self.jtm_path: str = os.path.join(self.temp_dir.name, self.jtm_filename)
-        self.corpus: JTMCorpus = JTMCorpus(path=self.jtm_path)
+        self.tmx_filename: str = f'{self.corpus_name}.tmx'
+        self.tmx_path: str = os.path.join(self.temp_dir.name, self.tmx_filename)
+        self.corpus: TMXCorpus = TMXCorpus(path=self.tmx_path)
 
     def test_writer_and_reader(self):
         self._write([self.tu_with_properties])
@@ -21,9 +21,9 @@ class TestJTMCorpus(TestCorpus):
     def test_footer_write_and_read(self):
         self._single_write()
 
-        same_corpus = JTMCorpus(self.corpus.path)
-        self.assertEqual(same_corpus.footer.get_total_count(), 1)
-        self.assertEqual(same_corpus.footer.counter[self.language_direction], 1)
+        same_corpus = TMXCorpus(self.corpus.path)
+        self.assertEqual(len(same_corpus), 1)
+        self.assertTrue(self.language_direction in same_corpus.languages)
 
     def test_languages_parsing(self):
         self._single_write()
@@ -31,6 +31,3 @@ class TestJTMCorpus(TestCorpus):
 
     def test_jtm_single_writer_and_reader(self):
         self._test_parallel_single_writer_and_reader()
-
-    def test_filename_parsing(self):
-        self.assertEqual(self.corpus.name, self.jtm_filename)

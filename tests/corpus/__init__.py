@@ -3,7 +3,7 @@ import unittest
 from typing import List, Optional
 
 from larakit import Language, LanguageDirection
-from larakit.corpus import MultilingualCorpus, TranslationUnit
+from larakit.corpus import MultilingualCorpus, TranslationUnit, Properties
 
 
 class TestCorpus(unittest.TestCase):
@@ -16,13 +16,16 @@ class TestCorpus(unittest.TestCase):
 
         self.language_direction = LanguageDirection(self.source_lang, self.target_lang)
         self.tu = TranslationUnit(language=self.language_direction, sentence='Hello', translation='Bonjour')
+        self.tu_properties = Properties.from_json({"note": "test"})
+        self.tu_with_properties = TranslationUnit(language=self.language_direction, sentence='Goodbye',
+                                                  translation='Au revoir', properties=self.tu_properties)
 
         self.corpus: Optional[MultilingualCorpus] = None
 
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def _read(self):
+    def _read(self) -> List[TranslationUnit]:
         with self.corpus.reader() as reader:
             return list(reader)
 
@@ -33,3 +36,11 @@ class TestCorpus(unittest.TestCase):
 
     def _single_write(self):
         self._write([self.tu])
+
+    def _test_parallel_single_writer_and_reader(self):
+        self._single_write()
+        units = self._read()
+
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0].sentence, self.tu.sentence)
+        self.assertEqual(units[0].translation, self.tu.translation)
