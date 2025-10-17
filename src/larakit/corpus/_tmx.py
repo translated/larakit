@@ -4,7 +4,7 @@ from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape as xml_escape
 
-from larakit import LanguageDirection
+from larakit import LanguageDirection, Language
 from larakit.corpus._base import MultilingualCorpus, TUReader, TUWriter, TranslationUnit, Properties
 
 
@@ -26,13 +26,6 @@ def _normalize_segment(text: str) -> str:
 
 def _attr_escape(value: str) -> str:
     return xml_escape(value, {'"': '&quot;'})
-
-
-def _is_equal_or_more_generic(a: str, b: str) -> bool:
-    # True if 'a' is equal to 'b' or 'a' is a generic prefix of 'b' (e.g., 'en' >= 'en-US')
-    a_l = a.lower()
-    b_l = b.lower()
-    return a_l == b_l or b_l.startswith(a_l + "-")
 
 
 def _is_equal_or_more_specific(a: str, b: str) -> bool:
@@ -64,7 +57,7 @@ class TMXReader(TUReader):
         if self._file:
             self._file.close()
 
-    def _parse_header(self, context: Iterator[Tuple[str, ET.Element]]):
+    def _parse_header(self, context: Iterator[Tuple[str, ET.Element]]) -> None:
         if self._header_properties:
             return
 
@@ -73,28 +66,32 @@ class TMXReader(TUReader):
             tag = _local_name(elem.tag)
             if event == 'start' and tag == 'header':
                 self._header_srclang = elem.attrib.get("srclang")
-            elif event == 'end' and tag == 'prop':
-                if elem.attrib.get('type'):
-                    self._header_properties.put(elem.attrib['type'], "".join(elem.itertext()))
+            elif event == 'end' and tag == 'prop' and 'type' in elem.attrib:
+                self._header_properties.put(elem.attrib['type'], "".join(elem.itertext()))
             elif event == 'end' and tag == 'header':
                 elem.clear()
                 return
 
     @staticmethod
-    def _find_source_tuv_index(tuvs: List[_TUVData], source_lang: str) -> int:
+    def _find_source_tuv_index(tuvs: List[_TUVData], source_lang: Optional[Language]) -> int:
+        if not source_lang:
+            return 0
+
+        tuv_langs = [Language.from_string(tuv.lang) if tuv.lang else None for tuv in tuvs]
+
         # 1. Exact match
-        for i, tuv in enumerate(tuvs):
-            if tuv.lang and tuv.lang.lower() == source_lang.lower():
+        for i, tuv_lang in enumerate(tuv_langs):
+            if tuv_lang == source_lang:
                 return i
 
         # 2. Generic match (e.g., source 'en' matches TUV 'en-US')
-        for i, tuv in enumerate(tuvs):
-            if tuv.lang and _is_equal_or_more_generic(source_lang, tuv.lang):
+        for i, tuv_lang in enumerate(tuv_langs):
+            if source_lang.is_equal_or_more_generic_than(tuv_lang):
                 return i
 
         # 3. Specific match (e.g., source 'en-US' matches TUV 'en')
-        for i, tuv in enumerate(tuvs):
-            if tuv.lang and _is_equal_or_more_specific(tuv.lang, source_lang):
+        for i, tuv_lang in enumerate(tuv_langs):
+            if tuv_lang.is_equal_or_more_generic_than(source_lang):
                 return i
 
         # 4. Fallback to the first TUV
@@ -111,8 +108,7 @@ class TMXReader(TUReader):
             text = _normalize_segment("".join(seg_elem.itertext()))
             tuvs.append(cls._TUVData(
                 lang=_get_lang(tuv_elem.attrib), text=text, creation_date=tuv_elem.attrib.get("creationdate"),
-                change_date=tuv_elem.attrib.get("changedate"))
-            )
+                change_date=tuv_elem.attrib.get("changedate")))
         return tuvs
 
     def _translation_units_from_element(self, tu_element: ET.Element) -> Generator[TranslationUnit, None, None]:
@@ -121,13 +117,12 @@ class TMXReader(TUReader):
             return
 
         # Determine source language, falling back from TU, header, or first TUV
-        source_lang = tu_element.attrib.get("srclang") or self._header_srclang
-        if not source_lang and tuvs[0].lang:
-            source_lang = tuvs[0].lang
+        source_lang_tag = tu_element.attrib.get("srclang") or self._header_srclang
+        if not source_lang_tag and tuvs[0].lang:
+            source_lang_tag = tuvs[0].lang
 
-        # Find and extract the source TUV
-        src_idx = self._find_source_tuv_index(tuvs, source_lang) if source_lang else 0
-        source_tuv = tuvs.pop(src_idx)
+        source_lang = Language.from_string(source_lang_tag) if source_lang_tag else None
+        source_tuv = tuvs.pop(self._find_source_tuv_index(tuvs, source_lang))
 
         # Extract TU-level metadata
         tu_props = Properties()
@@ -142,16 +137,12 @@ class TMXReader(TUReader):
                 continue
 
             lang_dir = LanguageDirection.from_tuple((source_tuv.lang, target_tuv.lang))
-
             yield TranslationUnit(
-                language=lang_dir,
-                sentence=source_tuv.text,
-                translation=target_tuv.text,
+                language=lang_dir, sentence=source_tuv.text, translation=target_tuv.text,
                 tuid=tu_element.attrib.get("tuid"),
                 creation_date=target_tuv.creation_date or tu_element.attrib.get("creationdate"),
                 change_date=target_tuv.change_date or tu_element.attrib.get("changedate"),
-                properties=Properties(tu_props) if tu_props.size() > 0 else None
-            )
+                properties=Properties(tu_props) if tu_props.size() > 0 else None)
 
     def __iter__(self) -> Generator[TranslationUnit, None, None]:
         """
