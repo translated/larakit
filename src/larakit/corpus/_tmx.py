@@ -1,5 +1,6 @@
 import os
-from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple
+from dataclasses import dataclass
+from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape as xml_escape
 
@@ -42,10 +43,17 @@ def _is_equal_or_more_specific(a: str, b: str) -> bool:
 
 
 class TMXReader(TUReader):
+    @dataclass
+    class _TUVData:
+        lang: Optional[str]
+        text: Optional[str]
+        creation_date: Optional[str]
+        change_date: Optional[str]
+
     def __init__(self, path: str):
-        self._path = path
+        self._path: str = path
         self._file: Optional[TextIO] = None
-        self._header_properties: Properties = Properties()
+        self._header_properties: Optional[Properties] = None
         self._header_srclang: Optional[str] = None
 
     def __enter__(self) -> 'TMXReader':
@@ -56,131 +64,114 @@ class TMXReader(TUReader):
         if self._file:
             self._file.close()
 
-    def __iter__(self) -> Generator[TranslationUnit, None, None]:
-        # pylint:disable=too-many-locals
-        # pylint:disable=too-many-branches
-        # pylint:disable=too-many-statements
-        if self._file is None:
-            raise IOError("Reader is not open.")
+    def _parse_header(self, context: Iterator[Tuple[str, ET.Element]]):
+        if self._header_properties:
+            return
 
-        context = ET.iterparse(self._file, events=("start", "end"))
-        stack: List[Tuple[str, ET.Element]] = []
-
-        tu_attrs: Dict[str, Optional[str]] = {}
-        tu_properties: Optional[Properties] = None
-        tuv_current: Optional[Dict[str, Optional[str]]] = None
-        tuvs: List[Dict[str, Optional[str]]] = []
-
-        # pylint:disable=too-many-nested-blocks
+        self._header_properties = Properties()
         for event, elem in context:
             tag = _local_name(elem.tag)
+            if event == 'start' and tag == 'header':
+                self._header_srclang = elem.attrib.get("srclang")
+            elif event == 'end' and tag == 'prop':
+                if elem.attrib.get('type'):
+                    self._header_properties.put(elem.attrib['type'], "".join(elem.itertext()))
+            elif event == 'end' and tag == 'header':
+                elem.clear()
+                return
 
-            if event == "start":
-                stack.append((tag, elem))
+    @staticmethod
+    def _find_source_tuv_index(tuvs: List[_TUVData], source_lang: str) -> int:
+        # 1. Exact match
+        for i, tuv in enumerate(tuvs):
+            if tuv.lang and tuv.lang.lower() == source_lang.lower():
+                return i
 
-                if tag == "header":
-                    self._header_srclang = elem.attrib.get("srclang") or self._header_srclang
+        # 2. Generic match (e.g., source 'en' matches TUV 'en-US')
+        for i, tuv in enumerate(tuvs):
+            if tuv.lang and _is_equal_or_more_generic(source_lang, tuv.lang):
+                return i
 
-                elif tag == "tu":
-                    tu_attrs = {
-                        "tuid": elem.attrib.get("tuid"),
-                        "srclang": elem.attrib.get("srclang"),
-                        "creationdate": elem.attrib.get("creationdate"),
-                        "changedate": elem.attrib.get("changedate"),
-                    }
-                    tu_properties = Properties()
-                    tuvs = []
+        # 3. Specific match (e.g., source 'en-US' matches TUV 'en')
+        for i, tuv in enumerate(tuvs):
+            if tuv.lang and _is_equal_or_more_specific(tuv.lang, source_lang):
+                return i
 
-                elif tag == "tuv":
-                    tuv_current = {
-                        "lang": _get_lang(elem.attrib),
-                        "creationdate": elem.attrib.get("creationdate"),
-                        "changedate": elem.attrib.get("changedate"),
-                        "text": None,
-                    }
+        # 4. Fallback to the first TUV
+        return 0
 
-            else:
-                parent_tag = stack[-2][0] if len(stack) > 1 else None
+    @classmethod
+    def _tuvs_from_element(cls, tu_element: ET.Element) -> List[_TUVData]:
+        tuvs = []
+        for tuv_elem in tu_element.findall('tuv'):
+            seg_elem = tuv_elem.find('seg')
+            if seg_elem is None:
+                continue
 
-                if tag == "prop":
-                    prop_type = elem.attrib.get("type")
-                    if prop_type:
-                        prop_val = "".join(elem.itertext())
-                        if parent_tag == "header":
-                            self._header_properties.put(prop_type, prop_val)
-                        elif parent_tag == "tu" and tu_properties is not None:
-                            tu_properties.put(prop_type, prop_val)
-                    elem.clear()
+            text = _normalize_segment("".join(seg_elem.itertext()))
+            tuvs.append(cls._TUVData(
+                lang=_get_lang(tuv_elem.attrib), text=text, creation_date=tuv_elem.attrib.get("creationdate"),
+                change_date=tuv_elem.attrib.get("changedate"))
+            )
+        return tuvs
 
-                elif tag == "seg":
-                    if parent_tag == "tuv" and tuv_current is not None:
-                        seg_text = "".join(elem.itertext())
-                        tuv_current["text"] = _normalize_segment(seg_text)
-                    elem.clear()
+    def _translation_units_from_element(self, tu_element: ET.Element) -> Generator[TranslationUnit, None, None]:
+        tuvs = self._tuvs_from_element(tu_element)
+        if len(tuvs) < 2:
+            return
 
-                elif tag == "tuv":
-                    if tuv_current is None or not tuv_current.get("lang"):
-                        pass
-                    else:
-                        tuvs.append(tuv_current)
-                    tuv_current = None
-                    elem.clear()
+        # Determine source language, falling back from TU, header, or first TUV
+        source_lang = tu_element.attrib.get("srclang") or self._header_srclang
+        if not source_lang and tuvs[0].lang:
+            source_lang = tuvs[0].lang
 
-                elif tag == "tu":
-                    if tuvs and len(tuvs) >= 2:
-                        source_lang = tu_attrs.get("srclang") or self._header_srclang
-                        if not source_lang:
-                            source_lang = tuvs[0]["lang"]
+        # Find and extract the source TUV
+        src_idx = self._find_source_tuv_index(tuvs, source_lang) if source_lang else 0
+        source_tuv = tuvs.pop(src_idx)
 
-                        src_idx: Optional[int] = None
-                        if source_lang:
-                            for i, t in enumerate(tuvs):
-                                if t["lang"] and t["lang"].lower() == source_lang.lower():
-                                    src_idx = i
-                                    break
-                            if src_idx is None:
-                                for i, t in enumerate(tuvs):
-                                    if t["lang"] and _is_equal_or_more_generic(source_lang, t["lang"]):
-                                        src_idx = i
-                                        break
-                            if src_idx is None:
-                                for i, t in enumerate(tuvs):
-                                    if t["lang"] and _is_equal_or_more_specific(t["lang"], source_lang):
-                                        src_idx = i
-                                        break
+        # Extract TU-level metadata
+        tu_props = Properties()
+        for prop_elem in tu_element.findall('prop'):
+            prop_type = prop_elem.attrib.get('type')
+            if prop_type:
+                tu_props.put(prop_type, "".join(prop_elem.itertext()))
 
-                        if src_idx is None:
-                            src_idx = 0
+        # Yield a TranslationUnit for each remaining target TUV
+        for target_tuv in tuvs:
+            if not all([source_tuv.lang, source_tuv.text, target_tuv.lang, target_tuv.text]):
+                continue
 
-                        source_tuv = tuvs.pop(src_idx)
+            lang_dir = LanguageDirection.from_tuple((source_tuv.lang, target_tuv.lang))
 
-                        # defaults from TU if TUV-level dates are missing
-                        tu_creation = tu_attrs.get("creationdate")
-                        tu_change = tu_attrs.get("changedate")
+            yield TranslationUnit(
+                language=lang_dir,
+                sentence=source_tuv.text,
+                translation=target_tuv.text,
+                tuid=tu_element.attrib.get("tuid"),
+                creation_date=target_tuv.creation_date or tu_element.attrib.get("creationdate"),
+                change_date=target_tuv.change_date or tu_element.attrib.get("changedate"),
+                properties=Properties(tu_props) if tu_props.size() > 0 else None
+            )
 
-                        for t in tuvs:
-                            if not t.get("lang") or t.get("text") is None or source_tuv.get("text") is None:
-                                continue
-                            src_tag = source_tuv["lang"]
-                            tgt_tag = t["lang"]
+    def __iter__(self) -> Generator[TranslationUnit, None, None]:
+        """
+        Iterates over the TMX file, yielding TranslationUnit objects.
+        This method uses a memory-efficient XML stream parser.
+        """
+        if self._file is None:
+            raise IOError("Reader is not open. Use 'with TMXReader(...) as reader:' syntax.")
 
-                            lang = LanguageDirection.from_tuple((src_tag, tgt_tag))
-                            creation = t.get("creationdate") or tu_creation
-                            change = t.get("changedate") or tu_change
+        self._file.seek(0)  # Ensure we read from the beginning
+        context = ET.iterparse(self._file, events=("start", "end"))
 
-                            yield TranslationUnit(language=lang, sentence=source_tuv["text"], translation=t["text"],
-                                                  tuid=tu_attrs.get("tuid"), creation_date=creation, change_date=change,
-                                                  properties=Properties(tu_properties) if tu_properties else None)
+        # Efficiently parse the header first without loading the whole file
+        self._parse_header(context)
 
-                    elem.clear()
-                    tu_attrs = {}
-                    tu_properties = None
-                    tuvs = []
-
-                elif tag == "header":
-                    elem.clear()
-
-                stack.pop()
+        # Process the body, yielding TUs as they are fully parsed
+        for event, elem in context:
+            if event == 'end' and _local_name(elem.tag) == 'tu':
+                yield from self._translation_units_from_element(elem)
+                elem.clear()  # Free memory after processing the element
 
     @property
     def header_properties(self) -> Properties:
