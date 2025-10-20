@@ -79,12 +79,12 @@ class TMXReader(TUReader):
 
         # 2. Generic match (e.g., source 'en' matches TUV 'en-US')
         for i, tuv_lang in enumerate(tuv_langs):
-            if source_lang.is_equal_or_more_generic_than(tuv_lang):
+            if tuv_lang and source_lang.is_equal_or_more_generic_than(tuv_lang):
                 return i
 
         # 3. Specific match (e.g., source 'en-US' matches TUV 'en')
         for i, tuv_lang in enumerate(tuv_langs):
-            if tuv_lang.is_equal_or_more_generic_than(source_lang):
+            if tuv_lang and tuv_lang.is_equal_or_more_generic_than(source_lang):
                 return i
 
         # 4. Fallback to the first TUV
