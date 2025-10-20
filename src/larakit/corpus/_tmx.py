@@ -149,7 +149,7 @@ class TMXReader(TUReader):
                 elem.clear()
 
     @property
-    def header_properties(self) -> Properties:
+    def header_properties(self) -> Optional[Properties]:
         return self._header_properties
 
     @property
