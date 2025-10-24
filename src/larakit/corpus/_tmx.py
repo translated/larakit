@@ -1,4 +1,6 @@
+import io
 import os
+import re
 from dataclasses import dataclass
 from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
@@ -20,8 +22,53 @@ def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
     return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
 
 
+_CHAR_ENTITY_RE = re.compile(r'&#x([0-9A-Fa-f]+);')
+
+
+def _is_valid_xml_codepoint(c: int) -> bool:
+    return ((c == 0x09) or (c == 0x0A) or (c == 0x0D) or (0x20 <= c <= 0xD7FF) or (0xE000 <= c <= 0xFFFD) or (
+            0x10000 <= c <= 0x10FFFF))
+
+
+def _sanitize(string: str) -> str:
+    if all(_is_valid_xml_codepoint(ord(ch)) for ch in string):
+        return string
+
+    return ''.join(ch for ch in string if _is_valid_xml_codepoint(ord(ch)))
+
+
+def _sanitize_text(chunk: str) -> str:
+    def repl(m: re.Match) -> str:
+        try:
+            code = int(m.group(1), 16)
+        except (ValueError, TypeError):
+            return " "
+        return " " if not _is_valid_xml_codepoint(code) else m.group(0)
+
+    return _sanitize(_CHAR_ENTITY_RE.sub(repl, chunk))
+
+
+class _SanitizedXMLReader(io.TextIOBase):
+    def __init__(self, fp: TextIO, chunk_size: int = 4096):
+        self._fp = fp
+        self._buf = ""
+        self._chunk_size = chunk_size
+
+    def read(self, size: int = 4096) -> str:
+        data = self._fp.read(size)
+        if not data:
+            return ""
+        return _sanitize_text(data)
+
+    def readable(self) -> bool:
+        return True
+
+    def close(self):
+        self._fp.close()
+
+
 def _normalize_segment(text: str) -> str:
-    return text.replace("\n", " ").strip()
+    return text.replace("\n", " ")
 
 
 def _attr_escape(value: str) -> str:
@@ -43,7 +90,7 @@ class TMXReader(TUReader):
         self._header_srclang: Optional[str] = None
 
     def __enter__(self) -> 'TMXReader':
-        self._file = open(self._path, 'r', encoding='utf-8')
+        self._file = _SanitizedXMLReader(open(self._path, 'r', encoding='utf-8'))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -227,7 +274,7 @@ class TMXWriter(TUWriter):
         self._header_written = True
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
-        seg_text = _normalize_segment(segment)
+        seg_text = _normalize_segment(_sanitize_text(segment))
         self._file.write(f'      <tuv xml:lang="{_attr_escape(lang.tag)}"><seg>{xml_escape(seg_text)}</seg></tuv>\n')
 
 
