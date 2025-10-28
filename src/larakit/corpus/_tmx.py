@@ -48,7 +48,7 @@ class _SanitizedXMLReader(io.TextIOBase):
     def readable(self) -> bool:
         return True
 
-    def close(self):
+    def close(self) -> None:
         self._fp.close()
 
 
@@ -87,7 +87,7 @@ class TMXReader(TUReader):
         self._header_srclang: Optional[str] = None
 
     def __enter__(self) -> 'TMXReader':
-        self._file = _SanitizedXMLReader(open(self._path, 'r', encoding='utf-8'))
+        self._file: _SanitizedXMLReader = _SanitizedXMLReader(open(self._path, 'r', encoding='utf-8'))
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -114,23 +114,19 @@ class TMXReader(TUReader):
         if not source_lang:
             return 0
 
-        tuv_langs = [Language.from_string(tuv.lang) if tuv.lang else None for tuv in tuvs]
-
+        tuv_langs: List[Language] = [Language.from_string(tuv.lang) if tuv.lang else None for tuv in tuvs]
         # 1. Exact match
         for i, tuv_lang in enumerate(tuv_langs):
             if tuv_lang == source_lang:
                 return i
-
         # 2. Generic match (e.g., source 'en' matches TUV 'en-US')
         for i, tuv_lang in enumerate(tuv_langs):
             if tuv_lang and source_lang.is_equal_or_more_generic_than(tuv_lang):
                 return i
-
         # 3. Specific match (e.g., source 'en-US' matches TUV 'en')
         for i, tuv_lang in enumerate(tuv_langs):
             if tuv_lang and tuv_lang.is_equal_or_more_generic_than(source_lang):
                 return i
-
         # 4. Fallback to the first TUV
         return 0
 
