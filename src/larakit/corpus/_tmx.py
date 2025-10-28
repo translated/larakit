@@ -9,43 +9,28 @@ from xml.sax.saxutils import escape as xml_escape
 from larakit import LanguageDirection, Language
 from larakit.corpus._base import MultilingualCorpus, TUReader, TUWriter, TranslationUnit, Properties
 
-
-def _local_name(tag: str) -> str:
-    if tag is None:
-        return ""
-    if tag.startswith("{"):
-        return tag.split("}", 1)[1]
-    return tag
-
-
-def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
-    return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
-
-
 _CHAR_ENTITY_RE = re.compile(r'&#x([0-9A-Fa-f]+);')
 
 
-def _is_valid_xml_codepoint(c: int) -> bool:
-    return ((c == 0x09) or (c == 0x0A) or (c == 0x0D) or (0x20 <= c <= 0xD7FF) or (0xE000 <= c <= 0xFFFD) or (
-            0x10000 <= c <= 0x10FFFF))
-
-
-def _sanitize(string: str) -> str:
-    if all(_is_valid_xml_codepoint(ord(ch)) for ch in string):
-        return string
-
-    return ''.join(ch for ch in string if _is_valid_xml_codepoint(ord(ch)))
-
-
 def _sanitize_text(chunk: str) -> str:
+    def valid_xml_codepoint(c: int) -> bool:
+        return ((c == 0x09) or (c == 0x0A) or (c == 0x0D) or (0x20 <= c <= 0xD7FF) or (0xE000 <= c <= 0xFFFD) or (
+                0x10000 <= c <= 0x10FFFF))
+
+    def clean(text: str) -> str:
+        if all(valid_xml_codepoint(ord(ch)) for ch in text):
+            return text
+
+        return ''.join(ch for ch in text if valid_xml_codepoint(ord(ch)))
+
     def repl(m: re.Match) -> str:
         try:
             code = int(m.group(1), 16)
         except (ValueError, TypeError):
             return " "
-        return " " if not _is_valid_xml_codepoint(code) else m.group(0)
+        return " " if not valid_xml_codepoint(code) else m.group(0)
 
-    return _sanitize(_CHAR_ENTITY_RE.sub(repl, chunk))
+    return clean(_CHAR_ENTITY_RE.sub(repl, chunk))
 
 
 class _SanitizedXMLReader(io.TextIOBase):
@@ -65,6 +50,18 @@ class _SanitizedXMLReader(io.TextIOBase):
 
     def close(self):
         self._fp.close()
+
+
+def _local_name(tag: str) -> str:
+    if tag is None:
+        return ""
+    if tag.startswith("{"):
+        return tag.split("}", 1)[1]
+    return tag
+
+
+def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
+    return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
 
 
 def _normalize_segment(text: str) -> str:

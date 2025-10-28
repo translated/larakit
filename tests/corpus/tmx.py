@@ -33,11 +33,10 @@ class TestTMXCorpus(TestCorpus):
         self.assertTrue(self.language_direction in same_corpus.languages)
 
     def test_languages_parsing(self):
-        self._single_write()
-        self.assertEqual(self.corpus.languages, {self.language_direction})
+        self._test_languages_parsing()
 
     def test_jtm_single_writer_and_reader(self):
-        self._test_parallel_single_writer_and_reader()
+        self._test_single_tu_writer_and_reader()
 
     def _write_raw_tmx(self, body_content: str, srclang: str = "en"):
         tmx_content = f"""<?xml version="1.0" encoding="UTF-8"?>
@@ -110,13 +109,8 @@ class TestTMXCorpus(TestCorpus):
 
     def test_generic_tu_source_lang(self):
         sentence = "This is a test with a generic source language."
-        tu_content = f"""
-        <tu srclang="en" datatype="plaintext">
-          <tuv xml:lang="en-US"><seg>{sentence}</seg></tuv>
-          <tuv xml:lang="it"><seg>Questo è un test.</seg></tuv>
-        </tu>
-        """
-        self._write_raw_tmx(tu_content, srclang="en")
+        self._write_raw_tmx_simple(sentence=sentence, translation="Questo è un test.",
+                                   src_lang="en-US", tgt_lang="it", tu_srclang="en")
         units = self._read()
         self.assertEqual(len(units), 1)
         self.assertEqual(units[0].sentence, sentence)
@@ -125,13 +119,9 @@ class TestTMXCorpus(TestCorpus):
 
     def test_generic_tuv_lang(self):
         sentence = "This is a test with a generic TUV language."
-        tu_content = f"""
-        <tu srclang="en-US" datatype="plaintext">
-          <tuv xml:lang="en"><seg>{sentence}</seg></tuv>
-          <tuv xml:lang="it"><seg>Questo è un test.</seg></tuv>
-        </tu>
-        """
-        self._write_raw_tmx(tu_content, srclang="en-US")
+        self._write_raw_tmx_simple(sentence=sentence, translation="Questo è un test.",
+                                   src_lang="en", tgt_lang="it", tu_srclang="en-US")
+
         units = self._read()
         self.assertEqual(len(units), 1)
         self.assertEqual(units[0].sentence, sentence)

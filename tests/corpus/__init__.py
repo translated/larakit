@@ -37,7 +37,11 @@ class TestCorpus(unittest.TestCase):
     def _single_write(self):
         self._write([self.tu])
 
-    def _test_parallel_single_writer_and_reader(self):
+    def _test_languages_parsing(self):
+        self._single_write()
+        self.assertEqual(self.corpus.languages, {self.language_direction})
+
+    def _test_single_tu_writer_and_reader(self):
         self._single_write()
         units = self._read()
 

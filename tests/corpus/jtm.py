@@ -26,11 +26,10 @@ class TestJTMCorpus(TestCorpus):
         self.assertEqual(same_corpus.footer.counter[self.language_direction], 1)
 
     def test_languages_parsing(self):
-        self._single_write()
-        self.assertEqual(self.corpus.languages, {self.language_direction})
+        self._test_languages_parsing()
 
     def test_jtm_single_writer_and_reader(self):
-        self._test_parallel_single_writer_and_reader()
+        self._test_single_tu_writer_and_reader()
 
     def test_filename_parsing(self):
         self.assertEqual(self.corpus.name, self.jtm_filename)
