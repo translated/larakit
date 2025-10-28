@@ -183,12 +183,7 @@ class TestTMXCorpus(TestCorpus):
         self.assertEqual(units[1].language.target, self._FRENCH)
 
     def test_invalid_language_tag(self):
-        tu_content = """
-        <tu srclang="en">
-          <tuv xml:lang="en"><seg>This is a test.</seg></tuv>
-          <tuv xml:lang="Italian"><seg>Questa è una prova.</seg></tuv>
-        </tu>
-        """
-        self._write_raw_tmx(tu_content, srclang="en")
+        self._write_raw_tmx_simple(sentence="This is a test", translation="Questo è un test.",
+                                   src_lang="en", tgt_lang="Italian", tu_srclang="en")
         with self.assertRaises(Exception):
             self._read()
