@@ -203,16 +203,19 @@ class TMXWriter(TUWriter):
         self._file: Optional[TextIO] = None
         self._header_written: bool = False
         self._header_properties = header_properties
+        self._root_tag_open: bool = False
+        self._body_tag_open: bool = False
 
     def __enter__(self) -> 'TMXWriter':
-        self._file = open(self._path, 'w', encoding='utf-8')
+        self._file = open(self._path, 'wb')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._file:
-            if not self._header_written:
-                self._write_header(None)
-            self._file.write("  </body>\n</tmx>\n")
+            if self._body_tag_open:
+                self._file.write(b"</body>\n")
+            if self._root_tag_open:
+                self._file.write(b"</tmx>\n")
             self._file.close()
 
     def add_property(self, key: str, value: str) -> None:
@@ -224,51 +227,80 @@ class TMXWriter(TUWriter):
         if self._file is None:
             raise IOError("Writer is not open.")
 
-        src_lang, tgt_lang = tu.language.source, tu.language.target
         if not self._header_written:
-            self._write_header(src_lang)
+            self._write_header(tu.language.source)
 
-        attrs = ['datatype="plaintext"', f'srclang="{_attr_escape(src_lang.tag)}"']
-        if tu.tuid:
-            attrs.append(f'tuid="{_attr_escape(tu.tuid)}"')
-        if tu.creation_date:
-            attrs.append(f'creationdate="{_attr_escape(tu.creation_date)}"')
-        if tu.change_date:
-            attrs.append(f'changedate="{_attr_escape(tu.change_date)}"')
-
-        self._file.write(f'    <tu {" ".join(attrs)}>\n')
-        # TU-level properties
-        if tu.properties is not None:
-            for key in tu.properties.keys():
-                values = tu.properties.values(key) or []
-                for val in values:
-                    self._file.write(f'      <prop type="{_attr_escape(key)}">{xml_escape(val)}</prop>\n')
-        # TUVs
-        self._write_tuv(src_lang, tu.sentence)
-        self._write_tuv(tgt_lang, tu.translation)
-        self._file.write("    </tu>\n")
+        self._file.write(ET.tostring(self._build_tu_element(tu), encoding='utf-8') + b"\n")
 
     def _write_header(self, srclang: Optional[Language]) -> None:
-        self._file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-        self._file.write('<tmx version="1.4">\n')
-        header_attrs = ['datatype="plaintext"', 'o-tmf="LaraKit"', 'segtype="sentence"', 'adminlang="en"']
-        if srclang:
-            header_attrs.append(f'srclang="{_attr_escape(srclang.tag)}"')
+        tmx_elem = ET.Element("tmx", {"version": "1.4"})
 
-        self._file.write(f'  <header {" ".join(header_attrs)}>\n')
+        header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
+        if srclang:
+            header_attrs["srclang"] = srclang.tag
+
+        header_elem = ET.SubElement(tmx_elem, "header", header_attrs)
         if self._header_properties is not None:
             for key in self._header_properties.keys():
-                values = self._header_properties.values(key) or []
-                for val in values:
-                    self._file.write(f'    <prop type="{_attr_escape(key)}">{xml_escape(val)}</prop>\n')
+                for val in self._header_properties.values(key) or []:
+                    prop_elem = ET.SubElement(header_elem, "prop", {"type": key})
+                    prop_elem.text = val
 
-        self._file.write('  </header>\n')
-        self._file.write('  <body>\n')
+        self._file.write(b'<?xml version="1.0" encoding="UTF-8"?>\n')
+        for chunk in self._iter_element_open(tmx_elem):
+            self._file.write(chunk)
+        for chunk in self._iter_element_open(header_elem):
+            self._file.write(chunk)
+        for chunk in self._iter_element_close(header_elem):
+            self._file.write(chunk)
+
+        self._file.write(b"<body>\n")
+        self._root_tag_open = True
+        self._body_tag_open = True
         self._header_written = True
 
-    def _write_tuv(self, lang: Language, segment: str) -> None:
+    def _build_tu_element(self, tu: TranslationUnit) -> ET.Element:
+        src_lang, tgt_lang = tu.language.source, tu.language.target
+
+        attrs = {"datatype": "plaintext", "srclang": src_lang.tag}
+        if tu.tuid:
+            attrs["tuid"] = tu.tuid
+        if tu.creation_date:
+            attrs["creationdate"] = tu.creation_date
+        if tu.change_date:
+            attrs["changedate"] = tu.change_date
+
+        tu_elem = ET.Element("tu", attrs)
+        if tu.properties is not None:
+            for key in tu.properties.keys():
+                for val in tu.properties.values(key) or []:
+                    prop_elem = ET.SubElement(tu_elem, "prop", {"type": key})
+                    prop_elem.text = val
+
+        self._append_tuv(tu_elem, src_lang, tu.sentence)
+        self._append_tuv(tu_elem, tgt_lang, tu.translation)
+        return tu_elem
+
+    @staticmethod
+    def _append_tuv(parent: ET.Element, lang: Language, segment: str) -> None:
         seg_text = _normalize_segment(_sanitize_text(segment))
-        self._file.write(f'      <tuv xml:lang="{_attr_escape(lang.tag)}"><seg>{xml_escape(seg_text)}</seg></tuv>\n')
+        tuv_elem = ET.SubElement(parent, "tuv", {"xml:lang": lang.tag})
+        seg_elem = ET.SubElement(tuv_elem, "seg")
+        seg_elem.text = seg_text
+
+    @staticmethod
+    def _iter_element_open(elem: ET.Element):
+        tag = elem.tag
+        attrs = b"".join(b' %s="%s"' % (k.encode('utf-8'), v.encode('utf-8')) for k, v in elem.attrib.items())
+        yield b"<" + tag.encode("utf-8") + attrs + b">"
+
+        for child in list(elem):
+            yield from TMXWriter._iter_element_open(child)
+            yield from TMXWriter._iter_element_close(child)
+
+    @staticmethod
+    def _iter_element_close(elem: ET.Element):
+        yield b"</" + elem.tag.encode("utf-8") + b">"
 
 
 class TMXCorpus(MultilingualCorpus):
