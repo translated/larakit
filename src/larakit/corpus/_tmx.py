@@ -229,13 +229,11 @@ class TMXWriter(TUWriter):
         self._file.write(ET.tostring(self._build_tu_element(tu), encoding='utf-8') + b"\n")
 
     def _write_header(self, srclang: Optional[Language]) -> None:
-        tmx_elem = ET.Element("tmx", {"version": "1.4"})
-
         header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
         if srclang:
             header_attrs["srclang"] = srclang.tag
 
-        header_elem = ET.SubElement(tmx_elem, "header", header_attrs)
+        header_elem = ET.Element("header", header_attrs)
         if self._header_properties is not None:
             for key in self._header_properties.keys():
                 for val in self._header_properties.values(key) or []:
@@ -243,14 +241,9 @@ class TMXWriter(TUWriter):
                     prop_elem.text = val
 
         self._file.write(b'<?xml version="1.0" encoding="UTF-8"?>\n')
-        for chunk in self._iter_element_open(tmx_elem):
-            self._file.write(chunk)
-        for chunk in self._iter_element_open(header_elem):
-            self._file.write(chunk)
-        for chunk in self._iter_element_close(header_elem):
-            self._file.write(chunk)
-
-        self._file.write(b"<body>\n")
+        self._file.write(b'<tmx version="1.4">')
+        self._file.write(ET.tostring(header_elem, encoding='utf-8', short_empty_elements=False))
+        self._file.write(b"\n<body>\n")
         self._header_written = True
 
     def _build_tu_element(self, tu: TranslationUnit) -> ET.Element:
@@ -281,20 +274,6 @@ class TMXWriter(TUWriter):
         tuv_elem = ET.SubElement(parent, "tuv", {"xml:lang": lang.tag})
         seg_elem = ET.SubElement(tuv_elem, "seg")
         seg_elem.text = seg_text
-
-    @staticmethod
-    def _iter_element_open(elem: ET.Element):
-        tag = elem.tag
-        attrs = b"".join(b' %s="%s"' % (k.encode('utf-8'), v.encode('utf-8')) for k, v in elem.attrib.items())
-        yield b"<" + tag.encode("utf-8") + attrs + b">"
-
-        for child in list(elem):
-            yield from TMXWriter._iter_element_open(child)
-            yield from TMXWriter._iter_element_close(child)
-
-    @staticmethod
-    def _iter_element_close(elem: ET.Element):
-        yield b"</" + elem.tag.encode("utf-8") + b">"
 
 
 class TMXCorpus(MultilingualCorpus):
