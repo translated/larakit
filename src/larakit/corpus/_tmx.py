@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import escape as xml_escape, XMLGenerator
+from xml.sax.xmlreader import AttributesImpl
 
 from larakit import LanguageDirection, Language
 from larakit.corpus._base import MultilingualCorpus, TUReader, TUWriter, TranslationUnit, Properties
@@ -229,21 +230,21 @@ class TMXWriter(TUWriter):
         self._write_tu(tu)
 
     def _write_header(self, srclang: Optional[Language]) -> None:
-        self._xml_gen.startElement("tmx", {"version": "1.4"})
+        self._xml_gen.startElement("tmx", AttributesImpl({"version": "1.4"}))
 
         header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
         if srclang:
             header_attrs["srclang"] = srclang.tag
 
-        self._xml_gen.startElement("header", header_attrs)
+        self._xml_gen.startElement("header", AttributesImpl(header_attrs))
         if self._header_properties:
             for key in self._header_properties.keys():
                 for val in self._header_properties.values(key) or []:
-                    self._xml_gen.startElement("prop", {"type": key})
+                    self._xml_gen.startElement("prop", AttributesImpl({"type": key}))
                     self._xml_gen.characters(val)
                     self._xml_gen.endElement("prop")
         self._xml_gen.endElement("header")
-        self._xml_gen.startElement("body", {})
+        self._xml_gen.startElement("body", AttributesImpl({}))
 
     def _write_tu(self, tu: TranslationUnit) -> None:
         attrs = {"datatype": "plaintext", "srclang": tu.language.source.tag}
@@ -254,11 +255,11 @@ class TMXWriter(TUWriter):
         if tu.change_date:
             attrs["changedate"] = tu.change_date
 
-        self._xml_gen.startElement("tu", attrs)
+        self._xml_gen.startElement("tu", AttributesImpl(attrs))
         if tu.properties is not None:
             for key in tu.properties.keys():
                 for val in tu.properties.values(key) or []:
-                    self._xml_gen.startElement("prop", {"type": key})
+                    self._xml_gen.startElement("prop", AttributesImpl({"type": key}))
                     self._xml_gen.characters(val)
                     self._xml_gen.endElement("prop")
 
@@ -268,8 +269,8 @@ class TMXWriter(TUWriter):
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
         seg_text = _normalize_segment(_sanitize_text(segment))
-        self._xml_gen.startElement("tuv", {"xml:lang": lang.tag})
-        self._xml_gen.startElement("seg", {})
+        self._xml_gen.startElement("tuv", AttributesImpl({"xml:lang": lang.tag}))
+        self._xml_gen.startElement("seg", AttributesImpl({}))
         self._xml_gen.characters(seg_text)
         self._xml_gen.endElement("seg")
         self._xml_gen.endElement("tuv")
