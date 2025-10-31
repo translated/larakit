@@ -48,3 +48,13 @@ class TestCorpus(unittest.TestCase):
         self.assertEqual(len(units), 1)
         self.assertEqual(units[0].sentence, self.tu.sentence)
         self.assertEqual(units[0].translation, self.tu.translation)
+
+    def _test_multiple_tu_writer_and_reader(self):
+        tus_to_write = [self.tu for _ in range(10)]
+
+        self._write(tus_to_write)
+        units = self._read()
+
+        self.assertEqual(len(units), len(tus_to_write))
+        for read_tu, written_tu in zip(units, tus_to_write):
+            self.assertEqual(read_tu, written_tu)

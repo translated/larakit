@@ -187,3 +187,6 @@ class TestTMXCorpus(TestCorpus):
                                    src_lang="en", tgt_lang="Italian", tu_srclang="en")
         with self.assertRaises(Exception):
             self._read()
+
+    def test_multiple_tu_writer_and_reader(self):
+        self._test_multiple_tu_writer_and_reader()

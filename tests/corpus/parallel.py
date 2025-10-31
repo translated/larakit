@@ -43,5 +43,8 @@ class TestParallelCorpus(TestCorpus):
     def test_parallel_single_writer_and_reader(self):
         self._test_single_tu_writer_and_reader()
 
+    def test_multiple_tu_writer_and_reader(self):
+        self._test_multiple_tu_writer_and_reader()
+
     def test_filename_parsing(self):
         self.assertEqual(self.corpus.name, self.corpus_name)

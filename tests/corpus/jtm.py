@@ -33,3 +33,6 @@ class TestJTMCorpus(TestCorpus):
 
     def test_filename_parsing(self):
         self.assertEqual(self.corpus.name, self.jtm_filename)
+
+    def test_multiple_tu_writer_and_reader(self):
+        self._test_multiple_tu_writer_and_reader()
