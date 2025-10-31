@@ -229,25 +229,23 @@ class TMXWriter(TUWriter):
         self._write_tu(tu)
 
     def _write_header(self, srclang: Optional[Language]) -> None:
-        xg = self._xml_gen
-        xg.startElement("tmx", {"version": "1.4"})
+        self._xml_gen.startElement("tmx", {"version": "1.4"})
 
         header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
         if srclang:
             header_attrs["srclang"] = srclang.tag
 
-        xg.startElement("header", header_attrs)
+        self._xml_gen.startElement("header", header_attrs)
         if self._header_properties:
             for key in self._header_properties.keys():
                 for val in self._header_properties.values(key) or []:
-                    xg.startElement("prop", {"type": key})
-                    xg.characters(val)
-                    xg.endElement("prop")
-        xg.endElement("header")
-        xg.startElement("body", {})
+                    self._xml_gen.startElement("prop", {"type": key})
+                    self._xml_gen.characters(val)
+                    self._xml_gen.endElement("prop")
+        self._xml_gen.endElement("header")
+        self._xml_gen.startElement("body", {})
 
     def _write_tu(self, tu: TranslationUnit) -> None:
-        xg = self._xml_gen
         attrs = {"datatype": "plaintext", "srclang": tu.language.source.tag}
         if tu.tuid:
             attrs["tuid"] = tu.tuid
@@ -256,26 +254,25 @@ class TMXWriter(TUWriter):
         if tu.change_date:
             attrs["changedate"] = tu.change_date
 
-        xg.startElement("tu", attrs)
+        self._xml_gen.startElement("tu", attrs)
         if tu.properties is not None:
             for key in tu.properties.keys():
                 for val in tu.properties.values(key) or []:
-                    xg.startElement("prop", {"type": key})
-                    xg.characters(val)
-                    xg.endElement("prop")
+                    self._xml_gen.startElement("prop", {"type": key})
+                    self._xml_gen.characters(val)
+                    self._xml_gen.endElement("prop")
 
         self._write_tuv(tu.language.source, tu.sentence)
         self._write_tuv(tu.language.target, tu.translation)
-        xg.endElement("tu")
+        self._xml_gen.endElement("tu")
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
-        xg = self._xml_gen
         seg_text = _normalize_segment(_sanitize_text(segment))
-        xg.startElement("tuv", {"xml:lang": lang.tag})
-        xg.startElement("seg", {})
-        xg.characters(seg_text)
-        xg.endElement("seg")
-        xg.endElement("tuv")
+        self._xml_gen.startElement("tuv", {"xml:lang": lang.tag})
+        self._xml_gen.startElement("seg", {})
+        self._xml_gen.characters(seg_text)
+        self._xml_gen.endElement("seg")
+        self._xml_gen.endElement("tuv")
 
 
 class TMXCorpus(MultilingualCorpus):
