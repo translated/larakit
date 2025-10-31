@@ -203,8 +203,6 @@ class TMXWriter(TUWriter):
         self._file: Optional[TextIO] = None
         self._header_written: bool = False
         self._header_properties = header_properties
-        self._root_tag_open: bool = False
-        self._body_tag_open: bool = False
 
     def __enter__(self) -> 'TMXWriter':
         self._file = open(self._path, 'wb')
@@ -212,10 +210,8 @@ class TMXWriter(TUWriter):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._file:
-            if self._body_tag_open:
-                self._file.write(b"</body>\n")
-            if self._root_tag_open:
-                self._file.write(b"</tmx>\n")
+            self._file.write(b"</body>\n")
+            self._file.write(b"</tmx>\n")
             self._file.close()
 
     def add_property(self, key: str, value: str) -> None:
@@ -255,8 +251,6 @@ class TMXWriter(TUWriter):
             self._file.write(chunk)
 
         self._file.write(b"<body>\n")
-        self._root_tag_open = True
-        self._body_tag_open = True
         self._header_written = True
 
     def _build_tu_element(self, tu: TranslationUnit) -> ET.Element:
