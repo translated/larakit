@@ -4,8 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
-from xml.sax.saxutils import XMLGenerator
-from xml.sax.saxutils import escape as xml_escape
+from xml.sax.saxutils import escape as xml_escape, XMLGenerator
 
 from larakit import LanguageDirection, Language
 from larakit.corpus._base import MultilingualCorpus, TUReader, TUWriter, TranslationUnit, Properties
