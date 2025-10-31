@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
+from xml.sax.saxutils import XMLGenerator
 from xml.sax.saxutils import escape as xml_escape
 
 from larakit import LanguageDirection, Language
@@ -201,55 +202,54 @@ class TMXWriter(TUWriter):
     def __init__(self, path: str, header_properties: Optional[Properties] = None):
         self._path: str = path
         self._file: Optional[TextIO] = None
+        self._xml_gen: Optional[XMLGenerator] = None
         self._header_written: bool = False
         self._header_properties = header_properties
 
     def __enter__(self) -> 'TMXWriter':
         self._file = open(self._path, 'wb')
+        text_stream = io.TextIOWrapper(self._file, encoding='utf-8', write_through=True)
+        self._xml_gen = XMLGenerator(out=text_stream, encoding='utf-8')
+        self._xml_gen.startDocument()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._xml_gen:
+            self._xml_gen.endElement("body")
+            self._xml_gen.endElement("tmx")
+            self._xml_gen.endDocument()
         if self._file:
-            self._file.write(b"</body>\n")
-            self._file.write(b"</tmx>\n")
             self._file.close()
 
-    def add_property(self, key: str, value: str) -> None:
-        if self._header_properties is None:
-            self._header_properties = Properties()
-        self._header_properties.put(key, value)
-
     def write(self, tu: TranslationUnit) -> None:
-        if self._file is None:
+        if self._xml_gen is None:
             raise IOError("Writer is not open.")
-
         if not self._header_written:
             self._write_header(tu.language.source)
-
-        self._file.write(ET.tostring(self._build_tu_element(tu), encoding='utf-8') + b"\n")
+            self._header_written = True
+        self._write_tu(tu)
 
     def _write_header(self, srclang: Optional[Language]) -> None:
+        xg = self._xml_gen
+        xg.startElement("tmx", {"version": "1.4"})
+
         header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
         if srclang:
             header_attrs["srclang"] = srclang.tag
 
-        header_elem = ET.Element("header", header_attrs)
-        if self._header_properties is not None:
+        xg.startElement("header", header_attrs)
+        if self._header_properties:
             for key in self._header_properties.keys():
                 for val in self._header_properties.values(key) or []:
-                    prop_elem = ET.SubElement(header_elem, "prop", {"type": key})
-                    prop_elem.text = val
+                    xg.startElement("prop", {"type": key})
+                    xg.characters(val)
+                    xg.endElement("prop")
+        xg.endElement("header")
+        xg.startElement("body", {})
 
-        self._file.write(b'<?xml version="1.0" encoding="UTF-8"?>\n')
-        self._file.write(b'<tmx version="1.4">')
-        self._file.write(ET.tostring(header_elem, encoding='utf-8', short_empty_elements=False))
-        self._file.write(b"\n<body>\n")
-        self._header_written = True
-
-    def _build_tu_element(self, tu: TranslationUnit) -> ET.Element:
-        src_lang, tgt_lang = tu.language.source, tu.language.target
-
-        attrs = {"datatype": "plaintext", "srclang": src_lang.tag}
+    def _write_tu(self, tu: TranslationUnit) -> None:
+        xg = self._xml_gen
+        attrs = {"datatype": "plaintext", "srclang": tu.language.source.tag}
         if tu.tuid:
             attrs["tuid"] = tu.tuid
         if tu.creation_date:
@@ -257,23 +257,26 @@ class TMXWriter(TUWriter):
         if tu.change_date:
             attrs["changedate"] = tu.change_date
 
-        tu_elem = ET.Element("tu", attrs)
+        xg.startElement("tu", attrs)
         if tu.properties is not None:
             for key in tu.properties.keys():
                 for val in tu.properties.values(key) or []:
-                    prop_elem = ET.SubElement(tu_elem, "prop", {"type": key})
-                    prop_elem.text = val
+                    xg.startElement("prop", {"type": key})
+                    xg.characters(val)
+                    xg.endElement("prop")
 
-        self._append_tuv(tu_elem, src_lang, tu.sentence)
-        self._append_tuv(tu_elem, tgt_lang, tu.translation)
-        return tu_elem
+        self._write_tuv(tu.language.source, tu.sentence)
+        self._write_tuv(tu.language.target, tu.translation)
+        xg.endElement("tu")
 
-    @staticmethod
-    def _append_tuv(parent: ET.Element, lang: Language, segment: str) -> None:
+    def _write_tuv(self, lang: Language, segment: str) -> None:
+        xg = self._xml_gen
         seg_text = _normalize_segment(_sanitize_text(segment))
-        tuv_elem = ET.SubElement(parent, "tuv", {"xml:lang": lang.tag})
-        seg_elem = ET.SubElement(tuv_elem, "seg")
-        seg_elem.text = seg_text
+        xg.startElement("tuv", {"xml:lang": lang.tag})
+        xg.startElement("seg", {})
+        xg.characters(seg_text)
+        xg.endElement("seg")
+        xg.endElement("tuv")
 
 
 class TMXCorpus(MultilingualCorpus):
