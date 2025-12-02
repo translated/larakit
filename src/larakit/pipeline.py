@@ -140,7 +140,7 @@ class PipelineActivity:
 
         if isinstance(self.log_file, str):
             # pylint:disable=consider-using-with
-            _log_fobj = open(self.log_file, 'ab')
+            _log_fobj = open(self.log_file, 'a', encoding='utf-8')
             self._close_log_on_exit = True
         else:
             _log_fobj = self.log_file
