@@ -122,7 +122,7 @@ class PipelineActivity:
 
         # Configuring working dir
         if wdir is None:
-            _wdir = _temp_dir = tempfile.mkdtemp(prefix='elo_tmp_')
+            _wdir = _temp_dir = tempfile.mkdtemp(prefix='larakit_tmp_')
         else:
             _wdir = wdir
             _temp_dir = None
