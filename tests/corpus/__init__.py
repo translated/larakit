@@ -8,17 +8,18 @@ from larakit.corpus import MultilingualCorpus, TranslationUnit, Properties
 
 class TestCorpus(unittest.TestCase):
     def setUp(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_dir: tempfile.TemporaryDirectory = tempfile.TemporaryDirectory()
 
-        self.corpus_name = 'example_corpus'
-        self.source_lang = Language.from_string('en')
-        self.target_lang = Language.from_string('fr')
+        self.corpus_name: str = 'example_corpus'
+        self.source_lang: Language = Language.from_string('en')
+        self.target_lang: Language = Language.from_string('fr')
 
-        self.language_direction = LanguageDirection(self.source_lang, self.target_lang)
-        self.tu = TranslationUnit(language=self.language_direction, sentence='Hello', translation='Bonjour')
-        self.tu_properties = Properties.from_json({"note": "test"})
-        self.tu_with_properties = TranslationUnit(language=self.language_direction, sentence='Goodbye',
-                                                  translation='Au revoir', properties=self.tu_properties)
+        self.language_direction: LanguageDirection = LanguageDirection(self.source_lang, self.target_lang)
+        self.tu: TranslationUnit = TranslationUnit(language=self.language_direction, sentence='Hello',
+                                                   translation='Bonjour')
+        self.tu_properties: Properties = Properties.from_json({"note": "test"})
+        self.tu_with_properties: TranslationUnit = TranslationUnit(language=self.language_direction, sentence='Night',
+                                                                   translation='Nuit', properties=self.tu_properties)
 
         self.corpus: Optional[MultilingualCorpus] = None
 
