@@ -52,7 +52,6 @@ class TestCorpus(unittest.TestCase):
 
     def _test_multiple_tu_writer_and_reader(self) -> None:
         tus_to_write = [self.tu for _ in range(10)]
-
         self._write(tus_to_write)
         units = self._read()
 

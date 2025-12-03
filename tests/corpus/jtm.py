@@ -18,8 +18,8 @@ class TestJTMCorpus(TestCorpus):
         properties.put("source", "test")
         with self.corpus.writer(properties) as writer:
             writer.write(self.tu)
-
         units = self._read()
+
         self.assertEqual(len(units), 1)
         self.assertEqual(self.corpus.properties.get("source"), "test")
 
