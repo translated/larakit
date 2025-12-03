@@ -1,7 +1,8 @@
 import os
 
 from corpus import TestCorpus
-from larakit.corpus import Properties, JTMCorpus
+
+from larakit.corpus import JTMCorpus
 
 
 class TestJTMCorpus(TestCorpus):
@@ -13,17 +14,9 @@ class TestJTMCorpus(TestCorpus):
         self.corpus: JTMCorpus = JTMCorpus(path=self.jtm_path)
 
     def test_writer_and_reader(self):
-        properties = Properties()
-        properties.put("source", "test")
-        with self.corpus.writer(properties) as writer:
-            writer.write(self.tu)
-
+        self._write([self.tu_with_properties])
         units = self._read()
-
-        self.assertEqual(len(units), 1)
-        self.assertEqual(units[0].sentence, self.tu.sentence)
-        self.assertEqual(units[0].translation, self.tu.translation)
-        self.assertEqual(self.corpus.properties.get("source"), "test")
+        self.assertEqual(units[0].properties, self.tu_properties)
 
     def test_footer_write_and_read(self):
         self._single_write()
@@ -33,16 +26,13 @@ class TestJTMCorpus(TestCorpus):
         self.assertEqual(same_corpus.footer.counter[self.language_direction], 1)
 
     def test_languages_parsing(self):
-        self._single_write()
-        self.assertEqual(self.corpus.languages, {self.language_direction})
+        self._test_languages_parsing()
 
     def test_jtm_single_writer_and_reader(self):
-        self._single_write()
-        units = self._read()
-
-        self.assertEqual(len(units), 1)
-        self.assertEqual(units[0].sentence, self.tu.sentence)
-        self.assertEqual(units[0].translation, self.tu.translation)
+        self._test_single_tu_writer_and_reader()
 
     def test_filename_parsing(self):
         self.assertEqual(self.corpus.name, self.jtm_filename)
+
+    def test_multiple_tu_writer_and_reader(self):
+        self._test_multiple_tu_writer_and_reader()
