@@ -19,6 +19,8 @@ class TestJTMCorpus(TestCorpus):
         with self.corpus.writer(properties) as writer:
             writer.write(self.tu)
 
+        units = self._read()
+        self.assertEqual(len(units), 1)
         self.assertEqual(self.corpus.properties.get("source"), "test")
 
     def test_single_writer_and_reader_with_tu_properties(self):
