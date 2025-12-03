@@ -2,7 +2,7 @@ import os
 
 from corpus import TestCorpus
 
-from larakit.corpus import JTMCorpus
+from larakit.corpus import Properties, JTMCorpus
 
 
 class TestJTMCorpus(TestCorpus):
@@ -13,7 +13,15 @@ class TestJTMCorpus(TestCorpus):
         self.jtm_path: str = os.path.join(self.temp_dir.name, self.jtm_filename)
         self.corpus: JTMCorpus = JTMCorpus(path=self.jtm_path)
 
-    def test_writer_and_reader(self):
+    def test_writer_and_reader_with_corpus_properties(self):
+        properties = Properties()
+        properties.put("source", "test")
+        with self.corpus.writer(properties) as writer:
+            writer.write(self.tu)
+
+        self.assertEqual(self.corpus.properties.get("source"), "test")
+
+    def test_single_writer_and_reader_with_tu_properties(self):
         self._write([self.tu_with_properties])
         units = self._read()
         self.assertEqual(units[0].properties, self.tu_properties)
