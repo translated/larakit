@@ -38,11 +38,11 @@ class TestCorpus(unittest.TestCase):
     def _single_write(self) -> None:
         self._write([self.tu])
 
-    def _test_languages_parsing(self):
+    def _test_languages_parsing(self) -> None:
         self._single_write()
         self.assertEqual(self.corpus.languages, {self.language_direction})
 
-    def _test_single_tu_writer_and_reader(self):
+    def _test_single_tu_writer_and_reader(self) -> None:
         self._single_write()
         units = self._read()
 
@@ -50,7 +50,7 @@ class TestCorpus(unittest.TestCase):
         self.assertEqual(units[0].sentence, self.tu.sentence)
         self.assertEqual(units[0].translation, self.tu.translation)
 
-    def _test_multiple_tu_writer_and_reader(self):
+    def _test_multiple_tu_writer_and_reader(self) -> None:
         tus_to_write = [self.tu for _ in range(10)]
 
         self._write(tus_to_write)
