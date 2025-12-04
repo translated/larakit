@@ -9,18 +9,18 @@ class TestParallelCorpus(TestCorpus):
     def setUp(self):
         super().setUp()
 
-        self.source_file_path = os.path.join(self.temp_dir.name, f'{self.corpus_name}.{self.source_lang}')
-        self.target_file_path = os.path.join(self.temp_dir.name, f'{self.corpus_name}.{self.target_lang}')
-        self.corpus = ParallelCorpus(self.source_file_path, self.target_file_path)
+        self.source_file_path: str = os.path.join(self.temp_dir.name, f'{self.corpus_name}.{self.source_lang}')
+        self.target_file_path: str = os.path.join(self.temp_dir.name, f'{self.corpus_name}.{self.target_lang}')
+        self.corpus: ParallelCorpus = ParallelCorpus(self.source_file_path, self.target_file_path)
 
     def tearDown(self):
         self.temp_dir.cleanup()
 
     def test_empty_corpus(self):
-        with open(self.source_file_path, 'w', encoding='utf-8') as f:
-            f.write('')
-        with open(self.target_file_path, 'w', encoding='utf-8') as f:
-            f.write('')
+        with open(self.source_file_path, 'w', encoding='utf-8') as source_f:
+            source_f.write('')
+        with open(self.target_file_path, 'w', encoding='utf-8') as target_f:
+            target_f.write('')
 
         units = self._read()
         self.assertEqual(len(units), 0)
@@ -29,9 +29,7 @@ class TestParallelCorpus(TestCorpus):
         tu_with_newline = TranslationUnit(language=self.language_direction, sentence='This is\na test.',
                                           translation='Ceci est\nun test.', )
 
-        with self.corpus.writer() as writer:
-            writer.write(tu_with_newline)
-
+        self._write([tu_with_newline])
         units = self._read()
         self.assertEqual(len(units), 1)
         self.assertEqual(units[0].sentence, 'This is a test.')
