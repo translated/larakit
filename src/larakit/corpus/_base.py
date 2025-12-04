@@ -107,7 +107,7 @@ class TranslationUnit:
         return cls(language=LanguageDirection.from_tuple(json_data['language']), sentence=json_data["sentence"],
                    translation=json_data["translation"], tuid=json_data.get("tuid", None),
                    creation_date=json_data.get("creationDate", None), change_date=json_data.get("changeDate", None),
-                   properties=Properties.from_json(properties_data) if properties_data else None)
+                   properties=Properties.from_json(properties_data) if properties_data is not None else None)
 
     @property
     def language(self) -> LanguageDirection:
