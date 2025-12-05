@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
-from xml.sax.saxutils import escape as xml_escape, XMLGenerator
+from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesImpl
 
 from larakit import LanguageDirection, Language
@@ -63,10 +63,6 @@ def _local_name(tag: str) -> str:
 
 def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
     return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
-
-
-def _attr_escape(value: str) -> str:
-    return xml_escape(value, {'"': '&quot;'})
 
 
 class TMXReader(TUReader):
