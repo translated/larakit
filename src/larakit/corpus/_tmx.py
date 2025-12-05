@@ -53,14 +53,6 @@ class _SanitizedXMLReader(io.TextIOBase):
         self._fp.close()
 
 
-def _local_name(tag: str) -> str:
-    if tag is None:
-        return ""
-    if tag.startswith("{"):
-        return tag.split("}", 1)[1]
-    return tag
-
-
 def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
     return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
 
@@ -87,13 +79,21 @@ class TMXReader(TUReader):
         if self._file:
             self._file.close()
 
+    @staticmethod
+    def _local_name(tag: str) -> str:
+        if tag is None:
+            return ""
+        if tag.startswith("{"):
+            return tag.split("}", 1)[1]
+        return tag
+
     def _parse_header(self, context: Iterator[Tuple[str, ET.Element]]) -> None:
         if self._header_properties:
             return
 
         self._header_properties = Properties()
         for event, elem in context:
-            tag = _local_name(elem.tag)
+            tag = self._local_name(elem.tag)
             if event == 'start' and tag == 'header':
                 self._header_srclang = elem.attrib.get("srclang")
             elif event == 'end' and tag == 'prop' and 'type' in elem.attrib:
@@ -177,7 +177,7 @@ class TMXReader(TUReader):
         context = ET.iterparse(self._file, events=("start", "end"))
         self._parse_header(context)
         for event, elem in context:
-            if event == 'end' and _local_name(elem.tag) == 'tu':
+            if event == 'end' and self._local_name(elem.tag) == 'tu':
                 yield from self._translation_units_from_element(elem)
                 elem.clear()
 
