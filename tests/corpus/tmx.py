@@ -65,6 +65,21 @@ class TestTMXCorpus(TestCorpus):
         units = self._read()
         self.assertEqual(units[0].sentence, "Hello")
 
+    def test_reader_new_line_raw(self):
+        self._write_raw_tmx_simple(sentence='Hello\nHow are you?')
+        units = self._read()
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0].sentence, 'Hello\nHow are you?')
+
+    def test_reader_writer_new_line(self):
+        sentence = 'Hello\nHow are you?'
+        translation = 'Bonjour\nComment ça va?'
+        self._write([TranslationUnit(language=self.language_direction, sentence=sentence, translation=translation)])
+        units = self._read()
+        self.assertEqual(len(units), 1)
+        self.assertEqual(units[0].sentence, sentence)
+        self.assertEqual(units[0].translation, translation)
+
     def test_writer_control_character(self):
         self._write(
             [TranslationUnit(language=self.language_direction, sentence='Hello\f', translation='Bonjour')])

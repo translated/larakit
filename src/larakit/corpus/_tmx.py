@@ -65,10 +65,6 @@ def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
     return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
 
 
-def _normalize_segment(text: str) -> str:
-    return text.replace("\n", " ")
-
-
 def _attr_escape(value: str) -> str:
     return xml_escape(value, {'"': '&quot;'})
 
@@ -139,7 +135,7 @@ class TMXReader(TUReader):
             if seg_elem is None:
                 continue
 
-            text = _normalize_segment("".join(seg_elem.itertext()))
+            text = "".join(seg_elem.itertext())
             tuvs.append(cls._TUVData(
                 lang=_get_lang(tuv_elem.attrib), text=text, creation_date=tuv_elem.attrib.get("creationdate"),
                 change_date=tuv_elem.attrib.get("changedate")))
@@ -268,7 +264,7 @@ class TMXWriter(TUWriter):
         self._xml_gen.endElement("tu")
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
-        seg_text = _normalize_segment(_sanitize_text(segment))
+        seg_text = _sanitize_text(segment)
         self._xml_gen.startElement("tuv", AttributesImpl({"xml:lang": lang.tag}))
         self._xml_gen.startElement("seg", AttributesImpl({}))
         self._xml_gen.characters(seg_text)
