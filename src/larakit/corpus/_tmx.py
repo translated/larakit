@@ -61,7 +61,7 @@ class TMXReader(TUReader):
 
     def __init__(self, path: str):
         self._path: str = path
-        self._file: Optional[TextIO] = None
+        self._file: Optional[io.TextIOBase] = None
         self._header_properties: Optional[Properties] = None
         self._header_srclang: Optional[str] = None
 
