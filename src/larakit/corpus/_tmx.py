@@ -52,10 +52,6 @@ class _SanitizedXMLReader(io.TextIOBase):
         self._fp.close()
 
 
-def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
-    return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
-
-
 class TMXReader(TUReader):
     @dataclass
     class _TUVData:
@@ -85,6 +81,10 @@ class TMXReader(TUReader):
         if tag.startswith("{"):
             return tag.split("}", 1)[1]
         return tag
+
+    @staticmethod
+    def _get_lang(attrib: Dict[str, str]) -> Optional[str]:
+        return attrib.get("{http://www.w3.org/XML/1998/namespace}lang") or attrib.get("lang")
 
     def _parse_header(self, context: Iterator[Tuple[str, ET.Element]]) -> None:
         if self._header_properties:
@@ -132,7 +132,7 @@ class TMXReader(TUReader):
 
             text = "".join(seg_elem.itertext())
             tuvs.append(cls._TUVData(
-                lang=_get_lang(tuv_elem.attrib), text=text, creation_date=tuv_elem.attrib.get("creationdate"),
+                lang=cls._get_lang(tuv_elem.attrib), text=text, creation_date=tuv_elem.attrib.get("creationdate"),
                 change_date=tuv_elem.attrib.get("changedate")))
         return tuvs
 
