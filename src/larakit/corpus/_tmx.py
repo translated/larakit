@@ -36,12 +36,11 @@ def _sanitize_text(chunk: str) -> str:
 
 class _SanitizedXMLReader(io.TextIOBase):
     def __init__(self, fp: TextIO, chunk_size: int = 4096):
-        self._fp = fp
-        self._buf = ""
-        self._chunk_size = chunk_size
+        self._fp: TextIO = fp
+        self._chunk_size: int = chunk_size
 
-    def read(self, size: int = 4096) -> str:
-        data = self._fp.read(size)
+    def read(self, size: Optional[int] = None) -> str:
+        data = self._fp.read(size or self._chunk_size)
         if not data:
             return ""
         return _sanitize_text(data)
@@ -260,10 +259,9 @@ class TMXWriter(TUWriter):
         self._xml_gen.endElement("tu")
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
-        seg_text = _sanitize_text(segment)
         self._xml_gen.startElement("tuv", AttributesImpl({"xml:lang": lang.tag}))
         self._xml_gen.startElement("seg", AttributesImpl({}))
-        self._xml_gen.characters(seg_text)
+        self._xml_gen.characters(_sanitize_text(segment))
         self._xml_gen.endElement("seg")
         self._xml_gen.endElement("tuv")
 
