@@ -124,16 +124,16 @@ class TMXReader(TUReader):
 
     @classmethod
     def _tuvs_from_element(cls, tu_element: ET.Element) -> List[_TUVData]:
-        tuvs = []
+        tuvs: List[TMXReader._TUVData] = []
         for tuv_elem in tu_element.findall('tuv'):
             seg_elem = tuv_elem.find('seg')
             if seg_elem is None:
                 continue
 
-            text = "".join(seg_elem.itertext())
-            tuvs.append(cls._TUVData(
-                lang=cls._get_lang(tuv_elem.attrib), text=text, creation_date=tuv_elem.attrib.get("creationdate"),
-                change_date=tuv_elem.attrib.get("changedate")))
+            tuv = TMXReader._TUVData(lang=cls._get_lang(tuv_elem.attrib), text="".join(seg_elem.itertext()),
+                                     creation_date=tuv_elem.attrib.get("creationdate"),
+                                     change_date=tuv_elem.attrib.get("changedate"))
+            tuvs.append(tuv)
         return tuvs
 
     def _translation_units_from_element(self, tu_element: ET.Element) -> Generator[TranslationUnit, None, None]:
