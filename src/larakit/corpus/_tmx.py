@@ -34,24 +34,6 @@ def _sanitize_text(chunk: str) -> str:
     return clean(_CHAR_ENTITY_RE.sub(repl, chunk))
 
 
-class _SanitizedXMLReader(io.TextIOBase):
-    def __init__(self, fp: TextIO, chunk_size: int = 4096):
-        self._fp: TextIO = fp
-        self._chunk_size: int = chunk_size
-
-    def read(self, size: Optional[int] = None) -> str:
-        data = self._fp.read(size or self._chunk_size)
-        if not data:
-            return ""
-        return _sanitize_text(data)
-
-    def readable(self) -> bool:
-        return True
-
-    def close(self) -> None:
-        self._fp.close()
-
-
 class TMXReader(TUReader):
     @dataclass
     class _TUVData:
@@ -60,6 +42,23 @@ class TMXReader(TUReader):
         creation_date: Optional[str]
         change_date: Optional[str]
 
+    class _SanitizedXMLReader(io.TextIOBase):
+        def __init__(self, fp: TextIO, chunk_size: int = 4096):
+            self._fp: TextIO = fp
+            self._chunk_size: int = chunk_size
+
+        def read(self, size: Optional[int] = None) -> str:
+            data = self._fp.read(size or self._chunk_size)
+            if not data:
+                return ""
+            return _sanitize_text(data)
+
+        def readable(self) -> bool:
+            return True
+
+        def close(self) -> None:
+            self._fp.close()
+
     def __init__(self, path: str):
         self._path: str = path
         self._file: Optional[TextIO] = None
@@ -67,7 +66,8 @@ class TMXReader(TUReader):
         self._header_srclang: Optional[str] = None
 
     def __enter__(self) -> 'TMXReader':
-        self._file: _SanitizedXMLReader = _SanitizedXMLReader(open(self._path, 'r', encoding='utf-8'))
+        fp: TextIO = open(self._path, 'r', encoding='utf-8')
+        self._file: TMXReader._SanitizedXMLReader = TMXReader._SanitizedXMLReader(fp)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
