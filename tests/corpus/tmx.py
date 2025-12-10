@@ -60,11 +60,6 @@ class TestTMXCorpus(TestCorpus):
         """
         self._write_raw_tmx(tu_content, srclang=tu_srclang)
 
-    def test_reader_control_character(self):
-        self._write_raw_tmx_simple(sentence="Hello\f")
-        units = self._read()
-        self.assertEqual(units[0].sentence, "Hello")
-
     def test_reader_new_line_raw(self):
         self._write_raw_tmx_simple(sentence='Hello\nHow are you?')
         units = self._read()
@@ -85,17 +80,6 @@ class TestTMXCorpus(TestCorpus):
             [TranslationUnit(language=self.language_direction, sentence='Hello\f', translation='Bonjour')])
         units = self._read()
         self.assertEqual(units[0].sentence, "Hello")
-
-    def test_reader_control_xml_entity(self):
-        self._write_raw_tmx_simple(sentence="&#x0C;")
-        units = self._read()
-        self.assertEqual(units[0].sentence, " ")
-
-    def test_writer_control_xml_entity(self):
-        self._write([TranslationUnit(language=self.language_direction, sentence='&#x0C;', translation='Bonjour')])
-        units = self._read()
-        self.assertEqual(len(units), 1)
-        self.assertEqual(units[0].sentence, " ")
 
     def test_reader_4_byte_character(self):
         char = "𩸽"  # U+29E3D

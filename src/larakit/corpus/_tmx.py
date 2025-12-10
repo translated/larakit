@@ -1,6 +1,5 @@
 import io
 import os
-import re
 from dataclasses import dataclass
 from typing import Generator, Optional, Set, TextIO, List, Dict, Tuple, Iterator
 from xml.etree import ElementTree as ET
@@ -9,8 +8,6 @@ from xml.sax.xmlreader import AttributesImpl
 
 from larakit import LanguageDirection, Language
 from larakit.corpus._base import MultilingualCorpus, TUReader, TUWriter, TranslationUnit, Properties
-
-_CHAR_ENTITY_RE = re.compile(r'&#x([0-9A-Fa-f]+);')
 
 
 def _sanitize_text(chunk: str) -> str:
@@ -24,14 +21,7 @@ def _sanitize_text(chunk: str) -> str:
 
         return ''.join(ch for ch in text if valid_xml_codepoint(ord(ch)))
 
-    def repl(m: re.Match) -> str:
-        try:
-            code = int(m.group(1), 16)
-        except (ValueError, TypeError):
-            return " "
-        return " " if not valid_xml_codepoint(code) else m.group(0)
-
-    return clean(_CHAR_ENTITY_RE.sub(repl, chunk))
+    return clean(chunk)
 
 
 class TMXReader(TUReader):
@@ -42,32 +32,14 @@ class TMXReader(TUReader):
         creation_date: Optional[str]
         change_date: Optional[str]
 
-    class _SanitizedXMLReader(io.TextIOBase):
-        def __init__(self, fp: TextIO, chunk_size: int = 4096):
-            self._fp: TextIO = fp
-            self._chunk_size: int = chunk_size
-
-        def read(self, size: Optional[int] = None) -> str:
-            data = self._fp.read(size or self._chunk_size)
-            if not data:
-                return ""
-            return _sanitize_text(data)
-
-        def readable(self) -> bool:
-            return True
-
-        def close(self) -> None:
-            self._fp.close()
-
     def __init__(self, path: str):
         self._path: str = path
-        self._file: Optional[io.TextIOBase] = None
+        self._file: Optional[TextIO] = None
         self._header_properties: Optional[Properties] = None
         self._header_srclang: Optional[str] = None
 
     def __enter__(self) -> 'TMXReader':
-        fp: TextIO = open(self._path, 'r', encoding='utf-8')
-        self._file: TMXReader._SanitizedXMLReader = TMXReader._SanitizedXMLReader(fp)
+        self._file = open(self._path, 'r', encoding='utf-8')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
