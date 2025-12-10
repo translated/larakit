@@ -10,20 +10,6 @@ from larakit import LanguageDirection, Language
 from larakit.corpus._base import MultilingualCorpus, TUReader, TUWriter, TranslationUnit, Properties
 
 
-def _sanitize_text(chunk: str) -> str:
-    def valid_xml_codepoint(c: int) -> bool:
-        return ((c == 0x09) or (c == 0x0A) or (c == 0x0D) or (0x20 <= c <= 0xD7FF) or (0xE000 <= c <= 0xFFFD) or (
-                0x10000 <= c <= 0x10FFFF))
-
-    def clean(text: str) -> str:
-        if all(valid_xml_codepoint(ord(ch)) for ch in text):
-            return text
-
-        return ''.join(ch for ch in text if valid_xml_codepoint(ord(ch)))
-
-    return clean(chunk)
-
-
 class TMXReader(TUReader):
     @dataclass
     class _TUVData:
@@ -184,6 +170,20 @@ class TMXWriter(TUWriter):
         if self._file:
             self._file.close()
 
+    @staticmethod
+    def _sanitize_text(chunk: str) -> str:
+        def valid_xml_codepoint(c: int) -> bool:
+            return ((c == 0x09) or (c == 0x0A) or (c == 0x0D) or (0x20 <= c <= 0xD7FF) or (0xE000 <= c <= 0xFFFD) or (
+                    0x10000 <= c <= 0x10FFFF))
+
+        def clean(text: str) -> str:
+            if all(valid_xml_codepoint(ord(ch)) for ch in text):
+                return text
+
+            return ''.join(ch for ch in text if valid_xml_codepoint(ord(ch)))
+
+        return clean(chunk)
+
     def write(self, tu: TranslationUnit) -> None:
         if self._xml_gen is None:
             raise IOError("Writer is not open.")
@@ -233,7 +233,7 @@ class TMXWriter(TUWriter):
     def _write_tuv(self, lang: Language, segment: str) -> None:
         self._xml_gen.startElement("tuv", AttributesImpl({"xml:lang": lang.tag}))
         self._xml_gen.startElement("seg", AttributesImpl({}))
-        self._xml_gen.characters(_sanitize_text(segment))
+        self._xml_gen.characters(self._sanitize_text(segment))
         self._xml_gen.endElement("seg")
         self._xml_gen.endElement("tuv")
 
