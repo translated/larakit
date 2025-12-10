@@ -39,11 +39,11 @@ def mp_apply(generator, fn, *, pool_init=None, pool_init_args=None,
 
 
 def mp_stream(generator, fn, batch_size=1, threads=None, queue_size=None):
-    cores = threads or multiprocessing.cpu_count()
-    qsize = queue_size or cores * batch_size
+    threads = threads or multiprocessing.cpu_count()
+    queue_size = queue_size or threads * batch_size
 
-    in_q = multiprocessing.Queue(maxsize=qsize)
-    out_q = multiprocessing.Queue(maxsize=qsize * 2)
+    in_q = multiprocessing.Queue(maxsize=queue_size)
+    out_q = multiprocessing.Queue(maxsize=queue_size * 2)
 
     def worker(iq: multiprocessing.Queue, oq: multiprocessing.Queue):
         while True:
@@ -72,18 +72,18 @@ def mp_stream(generator, fn, batch_size=1, threads=None, queue_size=None):
         if batch:
             iq.put(batch)
 
-        for _ in range(cores):
+        for _ in range(threads):
             iq.put(None)
 
     loader_thread = threading.Thread(target=loader, args=(generator, in_q), daemon=True)
     loader_thread.start()
 
-    workers = [multiprocessing.Process(target=worker, args=(in_q, out_q), daemon=True) for _ in range(cores)]
+    workers = [multiprocessing.Process(target=worker, args=(in_q, out_q), daemon=True) for _ in range(threads)]
     for p in workers:
         p.start()
 
     finished = 0
-    while finished < cores:
+    while finished < threads:
         item = out_q.get()
         if item is None:
             finished += 1
