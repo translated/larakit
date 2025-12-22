@@ -177,6 +177,18 @@ def tar_gz(output_archive: str, input_dir: str, *,
     shexec(cmd)
 
 
+def untar_gz(input_archive: str, output_dir: str, *, use_pigz: bool = True) -> None:
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    cmd = ['tar', '-xf', input_archive]
+    if use_pigz:
+        cmd.append('--use-compress-program=pigz')
+    cmd.extend(['--directory', output_dir])
+
+    shexec(cmd)
+
+
 def nvidia_devices() -> List[int]:
     try:
         output, _ = shexec('nvidia-smi --query-gpu=index --format=csv,noheader,nounits')
