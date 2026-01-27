@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import unicodedata
 from collections.abc import Callable
 from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
@@ -167,14 +168,16 @@ def link(file_path: str, dest_path: str, symbolic: bool = False, overwrite: bool
 def tar_gz(output_archive: str, input_dir: str, *,
            file_filter: Callable[[str], bool] = None, use_pigz: bool = True) -> None:
     filenames = [f for f in os.listdir(input_dir) if file_filter is None or file_filter(os.path.join(input_dir, f))]
+    with tempfile.NamedTemporaryFile(mode='w', delete=True) as tmp:
+        tmp.write('\n'.join(filenames))
+        tmp.flush()
 
-    cmd = ['tar', '-cf', output_archive]
-    if use_pigz:
-        cmd.append('--use-compress-program=pigz')
-    cmd.extend(['--directory', input_dir])
-    cmd.extend(filenames)
+        cmd = ['tar', '-cf', output_archive]
+        if use_pigz:
+            cmd.append('--use-compress-program=pigz')
+        cmd.extend(['--directory', input_dir, '--files-from', tmp.name])
 
-    shexec(cmd)
+        shexec(cmd)
 
 
 def untar_gz(input_archive: str, output_dir: str, *, use_pigz: bool = True) -> None:
