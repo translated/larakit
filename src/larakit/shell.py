@@ -168,15 +168,16 @@ def link(file_path: str, dest_path: str, symbolic: bool = False, overwrite: bool
 def tar_gz(output_archive: str, input_dir: str, *,
            file_filter: Callable[[str], bool] = None, use_pigz: bool = True) -> None:
     filenames = [f for f in os.listdir(input_dir) if file_filter is None or file_filter(os.path.join(input_dir, f))]
+
+    cmd = ['tar', '-cf', output_archive]
+    if use_pigz:
+        cmd.append('--use-compress-program=pigz')
+
     with tempfile.NamedTemporaryFile(mode='w', delete=True) as tmp:
         tmp.write('\n'.join(filenames))
         tmp.flush()
 
-        cmd = ['tar', '-cf', output_archive]
-        if use_pigz:
-            cmd.append('--use-compress-program=pigz')
         cmd.extend(['--directory', input_dir, '--files-from', tmp.name])
-
         shexec(cmd)
 
 
