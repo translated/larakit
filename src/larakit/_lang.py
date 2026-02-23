@@ -199,6 +199,28 @@ class Language:
         "wo": "Wolof",
         "ydd": "Yiddish",
         "yo": "Yoruba",
+
+        "en-AU": "English (Australia)",
+        "en-GB": "English (United Kingdom)",
+        "en-US": "English (USA)",
+        "en-CA": "English (Canada)",
+        "en-IE": "English (Ireland)",
+        "es-419": "Spanish (Latin America)",
+        "es-ES": "Spanish (Spain)",
+        "es-MX": "Spanish (Mexico)",
+        "es-AR": "Spanish (Argentina)",
+        "fr-FR": "French (France)",
+        "fr-CA": "French (Canada)",
+        "nl-NL": "Dutch (Netherlands)",
+        "nl-BE": "Dutch (Belgium)",
+        "pt-BR": "Portuguese (Brazil)",
+        "pt-PT": "Portuguese (Portugal)",
+        "zh-CN": "Simplified Chinese (Mainland)",
+        "zh-HK": "Traditional Chinese (Hong Kong)",
+        "zh-TW": "Traditional Chinese (Taiwan)",
+
+        "zh-Hant": "Traditional Chinese",
+        "zh-Hans": "Simplified Chinese",
     }
 
     def __init__(self, code: str, tag: str, region: Optional[str] = None, script: Optional[str] = None):
@@ -307,6 +329,11 @@ class Language:
 
     @property
     def name(self) -> Optional[str]:
+        if self.region is not None or self.script is not None:
+            key: str = f'{self.code}-{self.region or self.script}'
+            if key in self._CODE_TO_NAME:
+                return self._CODE_TO_NAME[key]
+
         return self._CODE_TO_NAME.get(self.code, None)
 
     def is_language_only(self) -> bool:
