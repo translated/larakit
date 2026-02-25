@@ -148,6 +148,8 @@ class TMXReader(TUReader):
 
 
 class TMXWriter(TUWriter):
+    INDENTATION = "    "
+
     def __init__(self, path: str, header_properties: Optional[Properties] = None):
         self._path: str = path
         self._file: Optional[TextIO] = None
@@ -164,14 +166,19 @@ class TMXWriter(TUWriter):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._xml_gen:
-            self._xml_gen.ignorableWhitespace("\n")
+            self._indent(1)
             self._xml_gen.endElement("body")
-            self._xml_gen.ignorableWhitespace("\n")
+            self._indent(0)
             self._xml_gen.endElement("tmx")
-            self._xml_gen.ignorableWhitespace("\n")
             self._xml_gen.endDocument()
         if self._file:
             self._file.close()
+
+    def _indent(self, level: int) -> None:
+        if self._xml_gen:
+            self._xml_gen.ignorableWhitespace("\n")
+            if level > 0:
+                self._xml_gen.ignorableWhitespace(self.INDENTATION * level)
 
     @staticmethod
     def _sanitize_text(chunk: str) -> str:
@@ -197,23 +204,24 @@ class TMXWriter(TUWriter):
 
     def _write_header(self, srclang: Optional[Language]) -> None:
         self._xml_gen.startElement("tmx", AttributesImpl({"version": "1.4"}))
-        self._xml_gen.ignorableWhitespace("\n")
 
         header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
         if srclang:
             header_attrs["srclang"] = srclang.tag
 
+        self._indent(1)
         self._xml_gen.startElement("header", AttributesImpl(header_attrs))
         if self._header_properties:
             for key in self._header_properties.keys():
                 for val in self._header_properties.values(key) or []:
+                    self._indent(2)
                     self._xml_gen.startElement("prop", AttributesImpl({"type": key}))
                     self._xml_gen.characters(val)
                     self._xml_gen.endElement("prop")
+            self._indent(1)
         self._xml_gen.endElement("header")
-        self._xml_gen.ignorableWhitespace("\n")
+        self._indent(1)
         self._xml_gen.startElement("body", AttributesImpl({}))
-        self._xml_gen.ignorableWhitespace("\n")
 
     def _write_tu(self, tu: TranslationUnit) -> None:
         attrs = {"datatype": "plaintext", "srclang": tu.language.source.tag}
@@ -224,20 +232,23 @@ class TMXWriter(TUWriter):
         if tu.change_date:
             attrs["changedate"] = tu.change_date
 
+        self._indent(2)
         self._xml_gen.startElement("tu", AttributesImpl(attrs))
         if tu.properties is not None:
             for key in tu.properties.keys():
                 for val in tu.properties.values(key) or []:
+                    self._indent(3)
                     self._xml_gen.startElement("prop", AttributesImpl({"type": key}))
                     self._xml_gen.characters(val)
                     self._xml_gen.endElement("prop")
 
         self._write_tuv(tu.language.source, tu.sentence)
         self._write_tuv(tu.language.target, tu.translation)
+        self._indent(2)
         self._xml_gen.endElement("tu")
-        self._xml_gen.ignorableWhitespace("\n")
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
+        self._indent(3)
         self._xml_gen.startElement("tuv", AttributesImpl({"xml:lang": lang.tag}))
         self._xml_gen.startElement("seg", AttributesImpl({}))
         self._xml_gen.characters(self._sanitize_text(segment))
