@@ -174,7 +174,7 @@ def tar_gz(output_archive: str, input_dir: str, *,
         cmd.append('--use-compress-program=pigz')
 
     with tempfile.NamedTemporaryFile(mode='w', delete=True) as tmp:
-        tmp.write('\0'.join(filenames))
+        tmp.write('\n'.join(filenames))
         tmp.flush()
 
         cmd.extend(['--directory', input_dir, '--files-from', tmp.name])
