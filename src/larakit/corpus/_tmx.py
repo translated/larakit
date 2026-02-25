@@ -164,8 +164,11 @@ class TMXWriter(TUWriter):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._xml_gen:
+            self._xml_gen.ignorableWhitespace("\n")
             self._xml_gen.endElement("body")
+            self._xml_gen.ignorableWhitespace("\n")
             self._xml_gen.endElement("tmx")
+            self._xml_gen.ignorableWhitespace("\n")
             self._xml_gen.endDocument()
         if self._file:
             self._file.close()
@@ -194,6 +197,7 @@ class TMXWriter(TUWriter):
 
     def _write_header(self, srclang: Optional[Language]) -> None:
         self._xml_gen.startElement("tmx", AttributesImpl({"version": "1.4"}))
+        self._xml_gen.ignorableWhitespace("\n")
 
         header_attrs = {"datatype": "plaintext", "o-tmf": "LaraKit", "segtype": "sentence", "adminlang": "en"}
         if srclang:
@@ -207,7 +211,9 @@ class TMXWriter(TUWriter):
                     self._xml_gen.characters(val)
                     self._xml_gen.endElement("prop")
         self._xml_gen.endElement("header")
+        self._xml_gen.ignorableWhitespace("\n")
         self._xml_gen.startElement("body", AttributesImpl({}))
+        self._xml_gen.ignorableWhitespace("\n")
 
     def _write_tu(self, tu: TranslationUnit) -> None:
         attrs = {"datatype": "plaintext", "srclang": tu.language.source.tag}
@@ -229,6 +235,7 @@ class TMXWriter(TUWriter):
         self._write_tuv(tu.language.source, tu.sentence)
         self._write_tuv(tu.language.target, tu.translation)
         self._xml_gen.endElement("tu")
+        self._xml_gen.ignorableWhitespace("\n")
 
     def _write_tuv(self, lang: Language, segment: str) -> None:
         self._xml_gen.startElement("tuv", AttributesImpl({"xml:lang": lang.tag}))
