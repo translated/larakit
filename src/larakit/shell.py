@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import unicodedata
 from collections.abc import Callable
 from typing import BinaryIO, Generator, List, Union, IO, Dict, Tuple, Optional
@@ -171,10 +172,13 @@ def tar_gz(output_archive: str, input_dir: str, *,
     cmd = ['tar', '-cf', output_archive]
     if use_pigz:
         cmd.append('--use-compress-program=pigz')
-    cmd.extend(['--directory', input_dir])
-    cmd.extend(filenames)
 
-    shexec(cmd)
+    with tempfile.NamedTemporaryFile(mode='w', delete=True) as tmp:
+        tmp.write('\n'.join(filenames))
+        tmp.flush()
+
+        cmd.extend(['--directory', input_dir, '--files-from', tmp.name])
+        shexec(cmd)
 
 
 def untar_gz(input_archive: str, output_dir: str, *, use_pigz: bool = True) -> None:
