@@ -213,3 +213,7 @@ class MultilingualCorpus(ABC):
     @abstractmethod
     def writer(self) -> TUWriter:
         pass
+
+    @abstractmethod
+    def __len__(self):
+        pass
