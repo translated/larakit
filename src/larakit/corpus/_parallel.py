@@ -86,6 +86,8 @@ class ParallelCorpus(MultilingualCorpus):
         return ParallelCorpusWriter(self._language, self._source, self._target)
 
     def __len__(self) -> int:
+        if not os.path.exists(self._source):
+            return 0
         if self._size is None:
             self._size = shell.lc(self._source)
         return self._size
