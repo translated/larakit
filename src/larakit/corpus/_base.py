@@ -215,5 +215,5 @@ class MultilingualCorpus(ABC):
         pass
 
     @abstractmethod
-    def __len__(self):
+    def __len__(self) -> int:
         pass

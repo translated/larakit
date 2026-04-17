@@ -144,5 +144,5 @@ class JTMCorpus(MultilingualCorpus):
     def writer(self, properties: Optional[Properties] = None) -> JTMWriter:
         return JTMWriter(self._path, properties or self.properties)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.footer.get_total_count() if self.footer else 0
