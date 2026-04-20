@@ -58,3 +58,6 @@ class TestParallelCorpus(TestCorpus):
         tus_to_write = [self.tu for _ in range(7)]
         self._write(tus_to_write)
         self.assertEqual(len(self.corpus), len(self._read()))
+
+    def test_len_invalidated_on_writer(self):
+        self._test_len_invalidated_on_writer()

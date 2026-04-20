@@ -290,7 +290,11 @@ class TMXCorpus(MultilingualCorpus):
         return TMXReader(self._path)
 
     def writer(self, properties: Optional[Properties] = None) -> TMXWriter:
-        return TMXWriter(self._path, properties or self.properties)
+        writer_properties = properties or self.properties
+        self._length = None
+        self._languages = None
+        self._header_properties = None
+        return TMXWriter(self._path, writer_properties)
 
     @property
     def properties(self) -> Optional[Properties]:

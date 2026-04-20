@@ -83,6 +83,7 @@ class ParallelCorpus(MultilingualCorpus):
         return ParallelCorpusReader(self._language, self._source, self._target)
 
     def writer(self) -> ParallelCorpusWriter:
+        self._size = None
         return ParallelCorpusWriter(self._language, self._source, self._target)
 
     def __len__(self) -> int:

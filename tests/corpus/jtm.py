@@ -46,3 +46,6 @@ class TestJTMCorpus(TestCorpus):
 
     def test_multiple_tu_writer_and_reader(self):
         self._test_multiple_tu_writer_and_reader()
+
+    def test_len_invalidated_on_writer(self):
+        self._test_len_invalidated_on_writer()

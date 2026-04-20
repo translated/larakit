@@ -58,3 +58,10 @@ class TestCorpus(unittest.TestCase):
         self.assertEqual(len(units), len(tus_to_write))
         for read_tu, written_tu in zip(units, tus_to_write):
             self.assertEqual(read_tu, written_tu)
+
+    def _test_len_invalidated_on_writer(self) -> None:
+        self._write([self.tu for _ in range(3)])
+        self.assertEqual(len(self.corpus), 3)
+
+        self._write([self.tu for _ in range(5)])
+        self.assertEqual(len(self.corpus), 5)
