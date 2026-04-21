@@ -2,7 +2,7 @@ import os
 from typing import Set, Optional, TextIO, Generator
 
 from larakit import LanguageDirection, shell
-from larakit.corpus._base import MultilingualCorpus, TUReader, TranslationUnit, TUWriter
+from larakit.corpus._base import MultilingualCorpus, TUReader, TranslationUnit, TUWriter, Properties
 
 
 class ParallelCorpusReader(TUReader):
@@ -85,6 +85,10 @@ class ParallelCorpus(MultilingualCorpus):
     def writer(self) -> ParallelCorpusWriter:
         self._size = None
         return ParallelCorpusWriter(self._language, self._source, self._target)
+
+    @property
+    def properties(self) -> Optional[Properties]:
+        return None
 
     def __len__(self) -> int:
         if not os.path.exists(self._source):
