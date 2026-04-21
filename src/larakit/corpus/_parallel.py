@@ -84,5 +84,6 @@ class ParallelCorpus(MultilingualCorpus):
     def writer(self) -> ParallelCorpusWriter:
         return ParallelCorpusWriter(self._language, self._source, self._target)
 
+    @property
     def properties(self) -> Optional[Properties]:
         return None
