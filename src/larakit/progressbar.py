@@ -74,10 +74,14 @@ class Progressbar:
         self._progress: float = 0.0
         self._background_thread: Optional[threading.Timer] = None
         self._previous_update_length: int = 0
+        self._stopped: bool = False
 
     def _timer_handle(self) -> None:
         self._update()
+        if self._stopped:
+            return
         self._background_thread = threading.Timer(self._refresh_timeout, self._timer_handle)
+        self._background_thread.daemon = True
         self._background_thread.start()
 
     def _render(self, elapsed_time: float, eta: float, message: str = None) -> str:
@@ -145,11 +149,13 @@ class Progressbar:
         self._progress = min(1., max(0., progress))
 
     def cancel(self) -> None:
+        self._stopped = True
         if self._background_thread is not None:
             self._background_thread.cancel()
         sys.stdout.write(self._esc_show_cursor)
 
     def complete(self) -> None:
+        self._stopped = True
         if self._background_thread is not None:
             self._background_thread.cancel()
         self._progress = 1.0
@@ -158,6 +164,7 @@ class Progressbar:
         sys.stdout.write(self._esc_show_cursor)
 
     def abort(self, error: str = None) -> None:
+        self._stopped = True
         if self._background_thread is not None:
             self._background_thread.cancel()
         self._update(message=None if error is None else f' ERROR: {error}')

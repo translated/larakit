@@ -1,7 +1,7 @@
 import os
 from typing import Set, Optional, TextIO, Generator
 
-from larakit import LanguageDirection
+from larakit import LanguageDirection, shell
 from larakit.corpus._base import MultilingualCorpus, TUReader, TranslationUnit, TUWriter, Properties
 
 
@@ -69,6 +69,7 @@ class ParallelCorpus(MultilingualCorpus):
         target_parts = os.path.splitext(os.path.basename(target))
         self._name = source_parts[0]
         self._language: LanguageDirection = LanguageDirection.from_tuple((source_parts[1][1:], target_parts[1][1:]))
+        self._size: Optional[int] = None
 
     @property
     def name(self) -> str:
@@ -82,8 +83,16 @@ class ParallelCorpus(MultilingualCorpus):
         return ParallelCorpusReader(self._language, self._source, self._target)
 
     def writer(self) -> ParallelCorpusWriter:
+        self._size = None
         return ParallelCorpusWriter(self._language, self._source, self._target)
 
     @property
     def properties(self) -> Optional[Properties]:
         return None
+
+    def __len__(self) -> int:
+        if not os.path.exists(self._source):
+            return 0
+        if self._size is None:
+            self._size = shell.lc(self._source)
+        return self._size

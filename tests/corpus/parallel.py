@@ -46,3 +46,18 @@ class TestParallelCorpus(TestCorpus):
 
     def test_filename_parsing(self):
         self.assertEqual(self.corpus.name, self.corpus_name)
+
+    def test_len_empty(self):
+        with open(self.source_file_path, 'w', encoding='utf-8'):
+            pass
+        with open(self.target_file_path, 'w', encoding='utf-8'):
+            pass
+        self.assertEqual(len(self.corpus), 0)
+
+    def test_len_matches_reader(self):
+        tus_to_write = [self.tu for _ in range(7)]
+        self._write(tus_to_write)
+        self.assertEqual(len(self.corpus), len(self._read()))
+
+    def test_len_invalidated_on_writer(self):
+        self._test_len_invalidated_on_writer()

@@ -218,3 +218,7 @@ class MultilingualCorpus(ABC):
     @abstractmethod
     def properties(self) -> Optional[Properties]:
         pass
+
+    @abstractmethod
+    def __len__(self) -> int:
+        pass
