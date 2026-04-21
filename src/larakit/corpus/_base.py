@@ -213,3 +213,8 @@ class MultilingualCorpus(ABC):
     @abstractmethod
     def writer(self) -> TUWriter:
         pass
+
+    @property
+    @abstractmethod
+    def properties(self) -> Optional[Properties]:
+        pass
