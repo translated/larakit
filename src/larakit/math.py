@@ -36,9 +36,8 @@ class Sequence:
         return stddev
 
 
-def reservoir_sampling(stream: Iterable[Any], size: int, rng: Optional[random.Random] = None) -> List[Any]:
-    if rng is None:
-        rng = random
+def reservoir_sampling(stream: Iterable[Any], size: int, seed: Optional[int] = None) -> List[Any]:
+    rng = random.Random(seed)
     result = []
     for i, tu in enumerate(stream):
         if i < size:
