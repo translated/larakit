@@ -1,7 +1,7 @@
 import math
 import random
 from dataclasses import dataclass, field
-from typing import Iterable, Any, List
+from typing import Iterable, Any, List, Optional
 
 
 @dataclass
@@ -36,13 +36,14 @@ class Sequence:
         return stddev
 
 
-def reservoir_sampling(stream: Iterable[Any], size: int) -> List[Any]:
+def reservoir_sampling(stream: Iterable[Any], size: int, seed: Optional[int] = None) -> List[Any]:
+    rng = random.Random(seed)
     result = []
     for i, tu in enumerate(stream):
         if i < size:
             result.append(tu)
         else:
-            j = random.randint(0, i)
+            j = rng.randint(0, i)
             if j < size:
                 result[j] = tu
 
