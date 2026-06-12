@@ -395,7 +395,7 @@ class LanguageDirection:
 
     @property
     def ordered(self) -> 'LanguageDirection':
-        return self if self.source < self.target else self.reversed
+        return self.reversed if self.target < self.source else self
 
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
