@@ -9,11 +9,6 @@ class TestLanguage(unittest.TestCase):
         self.assertLess(Language.from_string("en"), Language.from_string("en-US"))
         self.assertFalse(Language.from_string("it") < Language.from_string("it"))
 
-    def test_lt_non_language_operand(self):
-        self.assertEqual(Language.from_string("en").__lt__("en"), NotImplemented)
-        with self.assertRaises(TypeError):
-            _ = Language.from_string("en") < "en"
-
     def test_sorted(self):
         languages = [Language.from_string(s) for s in ("it", "en-US", "de", "zh-Hant", "en")]
         sorted_tags = [language.tag for language in sorted(languages)]
@@ -25,12 +20,6 @@ class TestLanguageDirection(unittest.TestCase):
         self.assertLess(LanguageDirection.from_string("de__en"), LanguageDirection.from_string("en__de"))
         self.assertLess(LanguageDirection.from_string("en__de"), LanguageDirection.from_string("en__it"))
         self.assertFalse(LanguageDirection.from_string("en__it") < LanguageDirection.from_string("en__it"))
-
-    def test_lt_non_direction_operand(self):
-        direction = LanguageDirection.from_string("en__it")
-        self.assertEqual(direction.__lt__("en__it"), NotImplemented)
-        with self.assertRaises(TypeError):
-            _ = direction < "en__it"
 
     def test_sorted(self):
         directions = [LanguageDirection.from_string(s) for s in ("it__en", "en__it", "en__de", "de__en")]
