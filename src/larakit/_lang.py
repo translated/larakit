@@ -355,7 +355,9 @@ class Language:
 
         return True
 
-    def __eq__(self, other: 'Language') -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Language):
+            return NotImplemented
         return self.tag == other.tag
 
     def __lt__(self, other: 'Language') -> bool:
@@ -405,6 +407,8 @@ class LanguageDirection:
 
     @classmethod
     def from_string(cls, string: str) -> 'LanguageDirection':
+        if string is None:
+            raise ValueError("Input string must not be None")
         parts: List[str] = string.split('__')
         if len(parts) != 2:
             raise ValueError(f"Language direction string must contain two parts, got {len(parts)} in '{string}'")

@@ -4,6 +4,10 @@ from larakit import Language, LanguageDirection
 
 
 class TestLanguage(unittest.TestCase):
+    def test_eq_non_language(self):
+        self.assertNotEqual(Language.from_string("en"), "en")
+        self.assertNotEqual(Language.from_string("en"), None)
+
     def test_lt(self):
         self.assertLess(Language.from_string("de"), Language.from_string("en"))
         self.assertLess(Language.from_string("en"), Language.from_string("en-US"))
@@ -55,7 +59,7 @@ class TestLanguageDirection(unittest.TestCase):
             self.assertEqual(LanguageDirection.from_string(str(direction)), direction)
 
     def test_from_string_invalid(self):
-        for string in ("en", "a__b__c", "__it", "en__", "__", ""):
+        for string in ("en", "a__b__c", "__it", "en__", "__", "", None):
             with self.assertRaises(ValueError, msg=f"string: '{string}'"):
                 LanguageDirection.from_string(string)
 
