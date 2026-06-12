@@ -355,8 +355,15 @@ class Language:
 
         return True
 
-    def __eq__(self, other: 'Language') -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Language):
+            return NotImplemented
         return self.tag == other.tag
+
+    def __lt__(self, other: 'Language') -> bool:
+        if not isinstance(other, Language):
+            return NotImplemented
+        return self.tag < other.tag
 
     def __hash__(self) -> int:
         return hash(self.tag)
@@ -388,15 +395,39 @@ class LanguageDirection:
             self._reversed = LanguageDirection(source=self.target, target=self.source)
         return self._reversed
 
+    @property
+    def ordered(self) -> 'LanguageDirection':
+        return self.reversed if self.target < self.source else self
+
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
         if len(language) != 2:
             raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
         return cls(source=Language.from_string(language[0]), target=Language.from_string(language[1]))
 
+    @classmethod
+    def from_string(cls, string: str) -> 'LanguageDirection':
+        if string is None:
+            raise ValueError("Input string must not be None")
+        parts: List[str] = string.split('__')
+        if len(parts) != 2:
+            raise ValueError(f"Language direction string must contain two parts, got {len(parts)} in '{string}'")
+        return cls(source=Language.from_string(parts[0]), target=Language.from_string(parts[1]))
+
     def is_equal_or_more_generic_than(self, other: 'LanguageDirection') -> bool:
         return (self.source.is_equal_or_more_generic_than(other.source) and
                 self.target.is_equal_or_more_generic_than(other.target))
+
+    def is_language_only(self) -> bool:
+        return self.source.is_language_only() and self.target.is_language_only()
+
+    def as_language_only(self) -> 'LanguageDirection':
+        if self.is_language_only():
+            return self
+        return LanguageDirection(source=self.source.as_language_only(), target=self.target.as_language_only())
+
+    def to_tuple(self) -> Tuple[str, str]:
+        return self.to_json()
 
     def to_json(self) -> Tuple[str, str]:
         return self.source.tag, self.target.tag
@@ -408,6 +439,11 @@ class LanguageDirection:
             return False
         return self.source == other.source and self.target == other.target
 
+    def __lt__(self, other: 'LanguageDirection') -> bool:
+        if not isinstance(other, LanguageDirection):
+            return NotImplemented
+        return (self.source, self.target) < (other.source, other.target)
+
     def __hash__(self) -> int:
         return hash((self.source, self.target))
 
@@ -415,4 +451,4 @@ class LanguageDirection:
         return self.__str__()
 
     def __str__(self) -> str:
-        return f"{self.source}\u2192{self.target}"
+        return f"{self.source}__{self.target}"
