@@ -422,6 +422,9 @@ class LanguageDirection:
             return self
         return LanguageDirection(source=self.source.as_language_only(), target=self.target.as_language_only())
 
+    def to_tuple(self) -> Tuple[str, str]:
+        return self.to_json()
+
     def to_json(self) -> Tuple[str, str]:
         return self.source.tag, self.target.tag
 
