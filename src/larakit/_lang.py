@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional, List, Tuple, Dict
 
 
@@ -379,7 +380,7 @@ class LanguageDirection:
     def __init__(self, source: Language, target: Language):
         self._source: Language = source
         self._target: Language = target
-        self._reversed: Optional['LanguageDirection'] = None
+        self._swapped: Optional['LanguageDirection'] = None
 
     @property
     def source(self) -> Language:
@@ -390,14 +391,23 @@ class LanguageDirection:
         return self._target
 
     @property
-    def reversed(self):
-        if self._reversed is None:
-            self._reversed = LanguageDirection(source=self.target, target=self.source)
-        return self._reversed
+    def reversed(self) -> 'LanguageDirection':
+        warnings.warn("'reversed' is deprecated; use 'swapped()' instead.", DeprecationWarning, stacklevel=2)
+        return self.swapped()
 
     @property
     def ordered(self) -> 'LanguageDirection':
-        return self.reversed if self.target < self.source else self
+        warnings.warn("'ordered' is deprecated; use 'sorted()' instead.", DeprecationWarning, stacklevel=2)
+        return self.sorted()
+
+    def swapped(self) -> 'LanguageDirection':
+        if self._swapped is None:
+            self._swapped = LanguageDirection(source=self.target, target=self.source)
+            self._swapped._swapped = self
+        return self._swapped
+
+    def sorted(self) -> 'LanguageDirection':
+        return self.swapped() if self.target < self.source else self
 
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
