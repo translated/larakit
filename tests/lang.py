@@ -30,14 +30,18 @@ class TestLanguageDirection(unittest.TestCase):
         sorted_strings = [str(direction) for direction in sorted(directions)]
         self.assertEqual(sorted_strings, ["de__en", "en__de", "en__it", "it__en"])
 
-    def test_ordered(self):
-        self.assertEqual(str(LanguageDirection.from_string("en__de").ordered), "de__en")
-        self.assertEqual(str(LanguageDirection.from_string("zh-Hant__en").ordered), "en__zh-Hant")
-        self.assertEqual(str(LanguageDirection.from_string("it-IT__en-US").ordered), "en-US__it-IT")
+    def test_swapped(self):
+        self.assertEqual(str(LanguageDirection.from_string("en__de").swapped()), "de__en")
+        self.assertEqual(str(LanguageDirection.from_string("zh-Hant__en").swapped()), "en__zh-Hant")
 
-    def test_ordered_returns_self_when_ordered(self):
+    def test_sorted_orders_by_language(self):
+        self.assertEqual(str(LanguageDirection.from_string("en__de").sorted()), "de__en")
+        self.assertEqual(str(LanguageDirection.from_string("zh-Hant__en").sorted()), "en__zh-Hant")
+        self.assertEqual(str(LanguageDirection.from_string("it-IT__en-US").sorted()), "en-US__it-IT")
+
+    def test_sorted_returns_self_when_already_sorted(self):
         direction = LanguageDirection.from_string("de__en")
-        self.assertIs(direction.ordered, direction)
+        self.assertIs(direction.sorted(), direction)
 
     def test_str(self):
         self.assertEqual(str(LanguageDirection.from_tuple(("en-US", "it-IT"))), "en-US__it-IT")
