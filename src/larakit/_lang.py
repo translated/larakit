@@ -403,7 +403,6 @@ class LanguageDirection:
     def swapped(self) -> 'LanguageDirection':
         if self._swapped is None:
             self._swapped = LanguageDirection(source=self.target, target=self.source)
-            self._swapped._swapped = self
         return self._swapped
 
     def sorted(self) -> 'LanguageDirection':
