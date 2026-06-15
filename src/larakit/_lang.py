@@ -380,7 +380,7 @@ class LanguageDirection:
     def __init__(self, source: Language, target: Language):
         self._source: Language = source
         self._target: Language = target
-        self._reversed: Optional['LanguageDirection'] = None
+        self._swapped: Optional['LanguageDirection'] = None
 
     @property
     def source(self) -> Language:
@@ -401,9 +401,10 @@ class LanguageDirection:
         return self.sorted()
 
     def swapped(self) -> 'LanguageDirection':
-        if self._reversed is None:
-            self._reversed = LanguageDirection(source=self.target, target=self.source)
-        return self._reversed
+        if self._swapped is None:
+            self._swapped = LanguageDirection(source=self.target, target=self.source)
+            self._swapped._swapped = self
+        return self._swapped
 
     def sorted(self) -> 'LanguageDirection':
         return self.swapped() if self.target < self.source else self
