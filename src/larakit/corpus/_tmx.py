@@ -119,7 +119,7 @@ class TMXReader(TUReader):
             if not all([source_tuv.lang, source_tuv.text, target_tuv.lang, target_tuv.text]):
                 continue
 
-            lang_dir = LanguageDirection.from_tuple((source_tuv.lang, target_tuv.lang))
+            lang_dir = LanguageDirection(source_tuv.lang, target_tuv.lang)
             yield TranslationUnit(
                 language=lang_dir, sentence=source_tuv.text, translation=target_tuv.text,
                 tuid=tu_element.attrib.get("tuid"),
