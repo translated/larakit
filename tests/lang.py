@@ -44,9 +44,19 @@ class TestLanguageDirection(unittest.TestCase):
         self.assertIs(direction.sorted(), direction)
 
     def test_str(self):
-        self.assertEqual(str(LanguageDirection.from_tuple(("en-US", "it-IT"))), "en-US__it-IT")
-        self.assertEqual(str(LanguageDirection.from_tuple(("zh-Hant", "en"))), "zh-Hant__en")
-        self.assertEqual(str(LanguageDirection.from_tuple(("en", "it"))), "en__it")
+        self.assertEqual(str(LanguageDirection("en-US", "it-IT")), "en-US__it-IT")
+        self.assertEqual(str(LanguageDirection("zh-Hant", "en")), "zh-Hant__en")
+        self.assertEqual(str(LanguageDirection("en", "it")), "en__it")
+
+    def test_constructor_accepts_str(self):
+        direction = LanguageDirection("en-US", "it")
+        self.assertEqual(direction.source.tag, "en-US")
+        self.assertEqual(direction.target.tag, "it")
+
+    def test_constructor_accepts_language(self):
+        direction = LanguageDirection(Language.from_string("en-US"), Language.from_string("it"))
+        self.assertEqual(direction.source.tag, "en-US")
+        self.assertEqual(direction.target.tag, "it")
 
     def test_from_string(self):
         direction = LanguageDirection.from_string("en-US__it")
@@ -59,7 +69,7 @@ class TestLanguageDirection(unittest.TestCase):
 
     def test_from_string_round_trip(self):
         for pair in (("en", "it"), ("en-US", "it-IT"), ("zh-Hant", "en")):
-            direction = LanguageDirection.from_tuple(pair)
+            direction = LanguageDirection(*pair)
             self.assertEqual(LanguageDirection.from_string(str(direction)), direction)
 
     def test_from_string_invalid(self):

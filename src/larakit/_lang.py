@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Union
 
 
 class Language:
@@ -377,9 +377,9 @@ class Language:
 
 
 class LanguageDirection:
-    def __init__(self, source: Language, target: Language):
-        self._source: Language = source
-        self._target: Language = target
+    def __init__(self, source: Union[str, Language], target: Union[str, Language]):
+        self._source: Language = Language.from_string(source) if isinstance(source, str) else source
+        self._target: Language = Language.from_string(target) if isinstance(target, str) else target
         self._swapped: Optional['LanguageDirection'] = None
 
     @property
@@ -410,9 +410,11 @@ class LanguageDirection:
 
     @classmethod
     def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
+        warnings.warn("'from_tuple' is deprecated; pass source and target to the constructor instead.",
+                      DeprecationWarning, stacklevel=2)
         if len(language) != 2:
             raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
-        return cls(source=Language.from_string(language[0]), target=Language.from_string(language[1]))
+        return cls(*language)
 
     @classmethod
     def from_string(cls, string: str) -> 'LanguageDirection':

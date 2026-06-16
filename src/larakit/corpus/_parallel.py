@@ -68,7 +68,7 @@ class ParallelCorpus(MultilingualCorpus):
         source_parts = os.path.splitext(os.path.basename(source))
         target_parts = os.path.splitext(os.path.basename(target))
         self._name = source_parts[0]
-        self._language: LanguageDirection = LanguageDirection.from_tuple((source_parts[1][1:], target_parts[1][1:]))
+        self._language: LanguageDirection = LanguageDirection(source_parts[1][1:], target_parts[1][1:])
         self._size: Optional[int] = None
 
     @property
