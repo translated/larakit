@@ -1,6 +1,7 @@
 import json
 import os
-from typing import Dict, Any
+from collections.abc import Iterable, Mapping
+from typing import Any, Dict, Optional, Tuple, Union
 
 
 class Namespace:
@@ -38,6 +39,23 @@ class Namespace:
 
     def __setattr__(self, key, value):
         self.set(key, value)
+
+    def update(self, other: Optional[Union['Namespace', Mapping[str, Any], Iterable[Tuple[str, Any]]]] = None,
+               **kwargs) -> None:
+        for key, value in self._as_items(other):
+            self.set(key, value)
+        for key, value in kwargs.items():
+            self.set(key, value)
+
+    @staticmethod
+    def _as_items(other) -> Iterable[Tuple[str, Any]]:
+        if other is None:
+            return []
+        if isinstance(other, Namespace):
+            return other.to_json().items()
+        if isinstance(other, Mapping):
+            return other.items()
+        return other
 
     def has(self, key):
         return key in self.__dict__
@@ -92,6 +110,17 @@ class StatefulNamespace(Namespace):
         super().set(key, value)
 
         if self._autosave:
+            self.save()
+
+    def update(self, other=None, **kwargs) -> None:
+        autosave = self._autosave
+        self._set_private('_autosave', False)
+        try:
+            super().update(other, **kwargs)
+        finally:
+            self._set_private('_autosave', autosave)
+
+        if autosave:
             self.save()
 
     def save(self, indent: int = 2, sort_keys: bool = True):
