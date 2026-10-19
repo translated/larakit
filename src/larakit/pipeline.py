@@ -28,9 +28,11 @@ def mp_apply(generator, fn, *, pool_init=None, pool_init_args=None,
     jobs = Queue(maxsize=cores * batch_size)
     loader_thread = threading.Thread(target=loader, args=(generator, jobs), daemon=True)
 
-    loader_thread.start()
+    # Fork the workers before starting the loader: a lock it holds at fork time (e.g. while importing a module)
+    # would be inherited held by the workers, with no thread left to release it
+    with multiprocessing.Pool(initializer=pool_init, initargs=pool_init_args or (), processes=cores) as pool:
+        loader_thread.start()
 
-    with multiprocessing.Pool(initializer=pool_init, initargs=pool_init_args, processes=cores) as pool:
         imap_f = pool.imap if ordered else pool.imap_unordered
 
         yield from imap_f(fn, iter(jobs.get, None), chunksize=batch_size)
@@ -75,12 +77,13 @@ def mp_stream(generator, fn, batch_size=1, threads=None, queue_size=None):
         for _ in range(threads):
             iq.put(None)
 
-    loader_thread = threading.Thread(target=loader, args=(generator, in_q), daemon=True)
-    loader_thread.start()
-
+    # Fork the workers before starting the loader, as in mp_apply
     workers = [multiprocessing.Process(target=worker, args=(in_q, out_q), daemon=True) for _ in range(threads)]
     for p in workers:
         p.start()
+
+    loader_thread = threading.Thread(target=loader, args=(generator, in_q), daemon=True)
+    loader_thread.start()
 
     finished = 0
     while finished < threads:
