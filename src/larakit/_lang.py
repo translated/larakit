@@ -1,3 +1,4 @@
+import re
 import unicodedata
 import warnings
 from typing import Optional, List, Tuple, Dict, Union
@@ -248,6 +249,8 @@ class Language:
     def _is_digit(string: str) -> bool:
         return all('0' <= c <= '9' for c in string)
 
+    _SUBTAG = re.compile(r'[A-Za-z0-9]{1,8}')
+
     # Non-ASCII characters visually identical to ASCII letters or separators: Cyrillic and Greek homoglyphs, dashes.
     # Fullwidth forms are not here, as NFKC already folds them.
     _CONFUSABLES = str.maketrans({
@@ -311,6 +314,9 @@ class Language:
         skip: bool = False
         chunks: List[str] = Language._normalize(string.strip()).split('-')
         for i, chunk in enumerate(chunks):
+            if not Language._SUBTAG.fullmatch(chunk):
+                raise ValueError(f"Invalid subtag: '{chunk}' in '{string}'")
+
             if i == 0:
                 code = Language._parse_language(chunk)
                 if code is None:
@@ -334,9 +340,6 @@ class Language:
 
                 skip = True
                 tag_parts.append(chunk)
-
-        if code is None:
-            raise ValueError(f"Language subtag missing in '{string}'")
 
         tag: str = '-'.join(tag_parts)
         return cls(code=code, tag=tag, region=region, script=script)

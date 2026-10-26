@@ -18,6 +18,21 @@ class TestLanguage(unittest.TestCase):
         sorted_tags = [language.tag for language in sorted(languages)]
         self.assertEqual(sorted_tags, ["de", "en", "en-US", "it", "zh-Hant"])
 
+    def test_from_string_surrounding_whitespace(self):
+        for string in ("en-US ", " en-US", "\ten-US\n", " en_us "):
+            language = Language.from_string(string)
+
+            self.assertEqual("en", language.code, msg=string)
+            self.assertIsNone(language.script, msg=string)
+            self.assertEqual("US", language.region, msg=string)
+            self.assertEqual("en-US", language.tag, msg=string)
+
+    def test_from_string_invalid(self):
+        for string in ("", " ", "e", "engl", "1en", "en US", "en-U S", "en- US", "en -US", "en-US-x y", "en--US",
+                       "en-", "-en", "en-x-", "en-US-toolongsubtag", "en-é", "en-US.UTF-8"):
+            with self.assertRaises(ValueError, msg=string):
+                Language.from_string(string)
+
     def test_from_string_confusable_characters(self):
         # Cyrillic, fullwidth and dash lookalikes of "en-US"
         for string in ("еn-US", "en-UЅ", "ｅｎ-ＵＳ", "en‑US", "en－US"):
