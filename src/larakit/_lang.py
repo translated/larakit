@@ -3,7 +3,247 @@ from typing import Optional, List, Tuple, Dict, Union
 
 
 class Language:
-    _CODE_TO_NAME: Dict[str, str] = {
+    def __init__(self, code: str, tag: str, region: Optional[str] = None, script: Optional[str] = None):
+        if not code or not isinstance(code, str):
+            raise ValueError("code must be a non-empty string")
+        if not tag or not isinstance(tag, str):
+            raise ValueError("tag must be a non-empty string")
+
+        self._code: str = code
+        self._tag: str = tag
+        self._region: Optional[str] = region
+        self._script: Optional[str] = script
+
+    @staticmethod
+    def _to_title_case(string: str) -> str:
+        return string[0].upper() + string[1:].lower()
+
+    @staticmethod
+    def _is_alpha(string: str) -> bool:
+        return all('a' <= c <= 'z' or 'A' <= c <= 'Z' for c in string)
+
+    @staticmethod
+    def _is_digit(string: str) -> bool:
+        return all('0' <= c <= '9' for c in string)
+
+    @staticmethod
+    def _parse_language(string: str) -> Optional[str]:
+        if (len(string) == 2 or len(string) == 3) and Language._is_alpha(string):
+            return string.lower()
+        return None
+
+    @staticmethod
+    def _parse_script(string: str) -> Optional[str]:
+        if len(string) == 4 and Language._is_alpha(string):
+            return Language._to_title_case(string)
+        return None
+
+    @staticmethod
+    def _parse_region(string: str) -> Optional[str]:
+        if len(string) == 2 and Language._is_alpha(string):
+            return string.upper()
+        if len(string) == 3 and Language._is_digit(string):
+            return string
+        return None
+
+    @classmethod
+    def from_string(cls, string: str) -> 'Language':
+        if string is None:
+            raise ValueError("Input string must not be None")
+        if not string:
+            raise ValueError("Input string must not be empty")
+
+        code: Optional[str] = None
+        region: Optional[str] = None
+        script: Optional[str] = None
+        tag_parts: List[str] = []
+
+        skip: bool = False
+        chunks: List[str] = string.replace('_', '-').split('-')
+        for i, chunk in enumerate(chunks):
+            if i == 0:
+                code = Language._parse_language(chunk)
+                if code is None:
+                    raise ValueError(f"Invalid language subtag: '{chunk}' in '{string}'")
+                tag_parts.append(code)
+            else:
+                if not skip:
+                    if i == 1 and script is None:
+                        script_candidate = Language._parse_script(chunk)
+                        if script_candidate is not None:
+                            script = script_candidate
+                            tag_parts.append(script)
+                            continue
+
+                    if i <= 2 and region is None:
+                        region_candidate = Language._parse_region(chunk)
+                        if region_candidate is not None:
+                            region = region_candidate
+                            tag_parts.append(region)
+                            continue
+
+                skip = True
+                tag_parts.append(chunk)
+
+        if code is None:
+            raise ValueError(f"Language subtag missing in '{string}'")
+
+        tag: str = '-'.join(tag_parts)
+        return cls(code=code, tag=tag, region=region, script=script)
+
+    @property
+    def code(self) -> str:
+        return self._code
+
+    @property
+    def tag(self) -> str:
+        return self._tag
+
+    @property
+    def region(self) -> Optional[str]:
+        return self._region
+
+    @property
+    def script(self) -> Optional[str]:
+        return self._script
+
+    @property
+    def name(self) -> Optional[str]:
+        warnings.warn("'name' is deprecated; use 'Languages.name(language)' instead.", DeprecationWarning, stacklevel=2)
+        return Languages.name(self)
+
+    def is_language_only(self) -> bool:
+        return self.code == self.tag
+
+    def as_language_only(self) -> 'Language':
+        return self if self.is_language_only() else Language.from_string(self.code)
+
+    def is_equal_or_more_generic_than(self, other: 'Language') -> bool:
+        if not other:
+            return False
+
+        if self.code != other.code:
+            return False
+        if self.script and self.script != other.script:
+            return False
+        if self.region and self.region != other.region:
+            return False
+
+        return True
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Language):
+            return NotImplemented
+        return self.tag == other.tag
+
+    def __lt__(self, other: 'Language') -> bool:
+        if not isinstance(other, Language):
+            return NotImplemented
+        return self.tag < other.tag
+
+    def __hash__(self) -> int:
+        return hash(self.tag)
+
+    def __repr__(self) -> str:
+        return self.tag
+
+    def __str__(self):
+        return self.tag
+
+
+class LanguageDirection:
+    def __init__(self, source: Union[str, Language], target: Union[str, Language]):
+        self._source: Language = Language.from_string(source) if isinstance(source, str) else source
+        self._target: Language = Language.from_string(target) if isinstance(target, str) else target
+        self._swapped: Optional['LanguageDirection'] = None
+
+    @property
+    def source(self) -> Language:
+        return self._source
+
+    @property
+    def target(self) -> Language:
+        return self._target
+
+    @property
+    def reversed(self) -> 'LanguageDirection':
+        warnings.warn("'reversed' is deprecated; use 'swapped()' instead.", DeprecationWarning, stacklevel=2)
+        return self.swapped()
+
+    @property
+    def ordered(self) -> 'LanguageDirection':
+        warnings.warn("'ordered' is deprecated; use 'sorted()' instead.", DeprecationWarning, stacklevel=2)
+        return self.sorted()
+
+    def swapped(self) -> 'LanguageDirection':
+        if self._swapped is None:
+            self._swapped = LanguageDirection(source=self.target, target=self.source)
+        return self._swapped
+
+    def sorted(self) -> 'LanguageDirection':
+        return self.swapped() if self.target < self.source else self
+
+    @classmethod
+    def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
+        warnings.warn("'from_tuple' is deprecated; pass source and target to the constructor instead.",
+                      DeprecationWarning, stacklevel=2)
+        if len(language) != 2:
+            raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
+        return cls(*language)
+
+    @classmethod
+    def from_string(cls, string: str) -> 'LanguageDirection':
+        if string is None:
+            raise ValueError("Input string must not be None")
+        parts: List[str] = string.split('__')
+        if len(parts) != 2:
+            raise ValueError(f"Language direction string must contain two parts, got {len(parts)} in '{string}'")
+        return cls(source=Language.from_string(parts[0]), target=Language.from_string(parts[1]))
+
+    def is_equal_or_more_generic_than(self, other: 'LanguageDirection') -> bool:
+        return (self.source.is_equal_or_more_generic_than(other.source) and
+                self.target.is_equal_or_more_generic_than(other.target))
+
+    def is_language_only(self) -> bool:
+        return self.source.is_language_only() and self.target.is_language_only()
+
+    def as_language_only(self) -> 'LanguageDirection':
+        if self.is_language_only():
+            return self
+        return LanguageDirection(source=self.source.as_language_only(), target=self.target.as_language_only())
+
+    def to_tuple(self) -> Tuple[str, str]:
+        return self.to_json()
+
+    def to_json(self) -> Tuple[str, str]:
+        return self.source.tag, self.target.tag
+
+    def __eq__(self, other: object) -> bool:
+        if self is other:
+            return True
+        if not isinstance(other, LanguageDirection):
+            return False
+        return self.source == other.source and self.target == other.target
+
+    def __lt__(self, other: 'LanguageDirection') -> bool:
+        if not isinstance(other, LanguageDirection):
+            return NotImplemented
+        return (self.source, self.target) < (other.source, other.target)
+
+    def __hash__(self) -> int:
+        return hash((self.source, self.target))
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __str__(self) -> str:
+        return f"{self.source}__{self.target}"
+
+
+class Languages:
+    """The English names and the default locales of the languages."""
+
+    _NAMES: Dict[str, str] = {
         "de": "German",
         "en": "English",
         "es": "Spanish",
@@ -224,242 +464,65 @@ class Language:
         "zh-Hans": "Simplified Chinese",
     }
 
-    def __init__(self, code: str, tag: str, region: Optional[str] = None, script: Optional[str] = None):
-        if not code or not isinstance(code, str):
-            raise ValueError("code must be a non-empty string")
-        if not tag or not isinstance(tag, str):
-            raise ValueError("tag must be a non-empty string")
-
-        self._code: str = code
-        self._tag: str = tag
-        self._region: Optional[str] = region
-        self._script: Optional[str] = script
-
-    @staticmethod
-    def _to_title_case(string: str) -> str:
-        return string[0].upper() + string[1:].lower()
-
-    @staticmethod
-    def _is_alpha(string: str) -> bool:
-        return all('a' <= c <= 'z' or 'A' <= c <= 'Z' for c in string)
-
-    @staticmethod
-    def _is_digit(string: str) -> bool:
-        return all('0' <= c <= '9' for c in string)
-
-    @staticmethod
-    def _parse_language(string: str) -> Optional[str]:
-        if (len(string) == 2 or len(string) == 3) and Language._is_alpha(string):
-            return string.lower()
-        return None
-
-    @staticmethod
-    def _parse_script(string: str) -> Optional[str]:
-        if len(string) == 4 and Language._is_alpha(string):
-            return Language._to_title_case(string)
-        return None
-
-    @staticmethod
-    def _parse_region(string: str) -> Optional[str]:
-        if len(string) == 2 and Language._is_alpha(string):
-            return string.upper()
-        if len(string) == 3 and Language._is_digit(string):
-            return string
-        return None
-
-    @classmethod
-    def from_string(cls, string: str) -> 'Language':
-        if string is None:
-            raise ValueError("Input string must not be None")
-        if not string:
-            raise ValueError("Input string must not be empty")
-
-        code: Optional[str] = None
-        region: Optional[str] = None
-        script: Optional[str] = None
-        tag_parts: List[str] = []
-
-        skip: bool = False
-        chunks: List[str] = string.replace('_', '-').split('-')
-        for i, chunk in enumerate(chunks):
-            if i == 0:
-                code = Language._parse_language(chunk)
-                if code is None:
-                    raise ValueError(f"Invalid language subtag: '{chunk}' in '{string}'")
-                tag_parts.append(code)
-            else:
-                if not skip:
-                    if i == 1 and script is None:
-                        script_candidate = Language._parse_script(chunk)
-                        if script_candidate is not None:
-                            script = script_candidate
-                            tag_parts.append(script)
-                            continue
-
-                    if i <= 2 and region is None:
-                        region_candidate = Language._parse_region(chunk)
-                        if region_candidate is not None:
-                            region = region_candidate
-                            tag_parts.append(region)
-                            continue
-
-                skip = True
-                tag_parts.append(chunk)
-
-        if code is None:
-            raise ValueError(f"Language subtag missing in '{string}'")
-
-        tag: str = '-'.join(tag_parts)
-        return cls(code=code, tag=tag, region=region, script=script)
-
-    @property
-    def code(self) -> str:
-        return self._code
-
-    @property
-    def tag(self) -> str:
-        return self._tag
-
-    @property
-    def region(self) -> Optional[str]:
-        return self._region
-
-    @property
-    def script(self) -> Optional[str]:
-        return self._script
-
-    @property
-    def name(self) -> Optional[str]:
-        if self.region is not None or self.script is not None:
-            key: str = f'{self.code}-{self.region or self.script}'
-            if key in self._CODE_TO_NAME:
-                return self._CODE_TO_NAME[key]
-
-        return self._CODE_TO_NAME.get(self.code, None)
-
-    def is_language_only(self) -> bool:
-        return self.code == self.tag
-
-    def as_language_only(self) -> 'Language':
-        return self if self.is_language_only() else Language.from_string(self.code)
-
-    def is_equal_or_more_generic_than(self, other: 'Language') -> bool:
-        if not other:
-            return False
-
-        if self.code != other.code:
-            return False
-        if self.script and self.script != other.script:
-            return False
-        if self.region and self.region != other.region:
-            return False
-
-        return True
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Language):
-            return NotImplemented
-        return self.tag == other.tag
-
-    def __lt__(self, other: 'Language') -> bool:
-        if not isinstance(other, Language):
-            return NotImplemented
-        return self.tag < other.tag
-
-    def __hash__(self) -> int:
-        return hash(self.tag)
-
-    def __repr__(self) -> str:
-        return self.tag
-
-    def __str__(self):
-        return self.tag
-
-
-class LanguageDirection:
-    def __init__(self, source: Union[str, Language], target: Union[str, Language]):
-        self._source: Language = Language.from_string(source) if isinstance(source, str) else source
-        self._target: Language = Language.from_string(target) if isinstance(target, str) else target
-        self._swapped: Optional['LanguageDirection'] = None
-
-    @property
-    def source(self) -> Language:
-        return self._source
-
-    @property
-    def target(self) -> Language:
-        return self._target
-
-    @property
-    def reversed(self) -> 'LanguageDirection':
-        warnings.warn("'reversed' is deprecated; use 'swapped()' instead.", DeprecationWarning, stacklevel=2)
-        return self.swapped()
-
-    @property
-    def ordered(self) -> 'LanguageDirection':
-        warnings.warn("'ordered' is deprecated; use 'sorted()' instead.", DeprecationWarning, stacklevel=2)
-        return self.sorted()
-
-    def swapped(self) -> 'LanguageDirection':
-        if self._swapped is None:
-            self._swapped = LanguageDirection(source=self.target, target=self.source)
-        return self._swapped
-
-    def sorted(self) -> 'LanguageDirection':
-        return self.swapped() if self.target < self.source else self
+    # The default locale of each language code: "en" is "en-US", "pt" is "pt-BR"
+    _DEFAULTS: Dict[str, Language] = {code: Language.from_string(tag) for code, tag in {
+        'ace': 'ace-ID', 'acf': 'acf-LC', 'af': 'af-ZA', 'aig': 'aig-AG', 'ak': 'ak-GH', 'als': 'als-AL', 'am': 'am-ET',
+        'an': 'an-ES', 'ar': 'ar-SA', 'as': 'as-IN', 'ast': 'ast-ES', 'awa': 'awa-IN', 'ayr': 'ayr-BO', 'az': 'az-AZ',
+        'azb': 'azb-AZ', 'azj': 'azj-AZ', 'ba': 'ba-RU', 'bah': 'bah-BS', 'ban': 'ban-ID', 'be': 'be-BY',
+        'bem': 'bem-ZM', 'bg': 'bg-BG', 'bh': 'bh-IN', 'bho': 'bho-IN', 'bi': 'bi-VU', 'bjn': 'bjn-ID', 'bjs': 'bjs-BB',
+        'bm': 'bm-ML', 'bn': 'bn-BD', 'bo': 'bo-CN', 'br': 'br-FR', 'bs': 'bs-BA', 'bug': 'bug-ID', 'ca': 'ca-ES',
+        'cac': 'cac-GT', 'cav': 'cav-ES', 'ceb': 'ceb-PH', 'ch': 'ch-GU', 'chr': 'chr-US', 'cjk': 'cjk-AO',
+        'ckb': 'ckb-IQ', 'cop': 'cop-EG', 'crh': 'crh-RU', 'crs': 'crs-SC', 'cs': 'cs-CZ', 'ctg': 'ctg-BD',
+        'cy': 'cy-GB', 'da': 'da-DK', 'de': 'de-DE', 'dik': 'dik-SS', 'diq': 'diq-TR', 'dv': 'dv-MV', 'dyu': 'dyu-CI',
+        'dz': 'dz-BT', 'ee': 'ee-GH', 'el': 'el-GR', 'en': 'en-US', 'eo': 'eo-EU', 'es': 'es-ES', 'et': 'et-EE',
+        'eu': 'eu-ES', 'fa': 'fa-IR', 'ff': 'ff-FUL', 'fi': 'fi-FI', 'fil': 'fil-PH', 'fj': 'fj-FJ', 'fn': 'fn-FNG',
+        'fo': 'fo-FO', 'fon': 'fon-BJ', 'fr': 'fr-FR', 'fur': 'fur-IT', 'fuv': 'fuv-NG', 'ga': 'ga-IE', 'gax': 'gax-KE',
+        'gaz': 'gaz-ET', 'gcl': 'gcl-GD', 'gd': 'gd-GB', 'gil': 'gil-KI', 'gl': 'gl-ES', 'glw': 'glw-NG', 'gn': 'gn-PY',
+        'grc': 'grc-GR', 'grt': 'grt-IN', 'gu': 'gu-IN', 'guz': 'guz-KE', 'gv': 'gv-IM', 'gyn': 'gyn-GY', 'ha': 'ha-NE',
+        'haw': 'haw-US', 'he': 'he-IL', 'hi': 'hi-IN', 'hig': 'hig-NG', 'hil': 'hil-PH', 'hmn': 'hmn-CN',
+        'hne': 'hne-IN', 'hoc': 'hoc-IN', 'hr': 'hr-HR', 'ht': 'ht-HT', 'hu': 'hu-HU', 'hy': 'hy-AM', 'id': 'id-ID',
+        'ig': 'ig-NG', 'ilo': 'ilo-PH', 'is': 'is-IS', 'it': 'it-IT', 'ja': 'ja-JP', 'jam': 'jam-JM', 'jv': 'jv-ID',
+        'ka': 'ka-GE', 'kab': 'kab-DZ', 'kac': 'kac-MM', 'kam': 'kam-KE', 'kar': 'kar-MM', 'kas': 'kas-IN',
+        'kbp': 'kbp-TG', 'kea': 'kea-CV', 'kg': 'kg-CG', 'kha': 'kha-IN', 'khk': 'khk-MN', 'ki': 'ki-KE',
+        'kjb': 'kjb-GT', 'kk': 'kk-KZ', 'kl': 'kl-GL', 'kln': 'kln-KE', 'km': 'km-KH', 'kmb': 'kmb-AO', 'kmr': 'kmr-TR',
+        'kn': 'kn-IN', 'knc': 'knc-NG', 'ko': 'ko-KR', 'kok': 'kok-IN', 'kr': 'kr-KAU', 'ks': 'ks-IN', 'ky': 'ky-KG',
+        'la': 'la-VA', 'lb': 'lb-LU', 'lg': 'lg-UG', 'li': 'li-NL', 'lij': 'lij-IT', 'lmo': 'lmo-IT', 'ln': 'ln-CD',
+        'lo': 'lo-LA', 'lt': 'lt-LT', 'ltg': 'ltg-LV', 'lua': 'lua-CD', 'luo': 'luo-KE', 'lus': 'lus-IN',
+        'luy': 'luy-KE', 'lv': 'lv-LV', 'lvs': 'lvs-LV', 'mag': 'mag-IN', 'mai': 'mai-IN', 'mam': 'mam-GT',
+        'mas': 'mas-KE', 'men': 'men-SL', 'mer': 'mer-KE', 'mfe': 'mfe-MU', 'mfi': 'mfi-CM', 'mg': 'mg-MG',
+        'mh': 'mh-MH', 'mhr': 'mhr-RU', 'mi': 'mi-NZ', 'min': 'min-ID', 'mk': 'mk-MK', 'ml': 'ml-IN', 'mn': 'mn-MN',
+        'mni': 'mni-IN', 'mos': 'mos-BF', 'mr': 'mr-IN', 'mrj': 'mrj-RU', 'mrt': 'mrt-NG', 'ms': 'ms-MY', 'mt': 'mt-MT',
+        'my': 'my-MM', 'nb': 'nb-NO', 'nd': 'nd-ZW', 'ndc': 'ndc-MZ', 'ne': 'ne-NP', 'niu': 'niu-NU', 'nl': 'nl-NL',
+        'nn': 'nn-NO', 'nr': 'nr-ZA', 'nso': 'nso-ZA', 'nus': 'nus-SS', 'ny': 'ny-MW', 'nyf': 'nyf-KE', 'oc': 'oc-FR',
+        'or': 'or-IN', 'ory': 'ory-IN', 'pa': 'pa-IN', 'pag': 'pag-PH', 'pap': 'pap-CW', 'pau': 'pau-PW',
+        'pbt': 'pbt-PK', 'pi': 'pi-IN', 'pis': 'pis-SB', 'pl': 'pl-PL', 'plt': 'plt-MG', 'pot': 'pot-US',
+        'pov': 'pov-GW', 'ppk': 'ppk-ID', 'prs': 'prs-AF', 'ps': 'ps-PK', 'pt': 'pt-BR', 'qu': 'qu-PE', 'quc': 'quc-GT',
+        'quy': 'quy-PE', 'rhg': 'rhg-MM', 'rhl': 'rhl-MM', 'rmn': 'rmn-BG', 'rn': 'rn-BI', 'ro': 'ro-RO',
+        'roh': 'roh-CH', 'ru': 'ru-RU', 'run': 'run-BI', 'rw': 'rw-RW', 'sa': 'sa-IN', 'sat': 'sat-IN', 'sc': 'sc-IT',
+        'scn': 'scn-IT', 'sd': 'sd-PK', 'seh': 'seh-ZW', 'sg': 'sg-CF', 'shn': 'shn-MM', 'shu': 'shu-TD', 'si': 'si-LK',
+        'sk': 'sk-SK', 'sl': 'sl-SI', 'sm': 'sm-WS', 'sn': 'sn-ZW', 'so': 'so-SO', 'sq': 'sq-AL', 'sr': 'sr-Latn-RS',
+        'srn': 'srn-SR', 'ss': 'ss-SZ', 'st': 'st-LS', 'su': 'su-ID', 'sv': 'sv-SE', 'svc': 'svc-VC', 'sw': 'sw-KE',
+        'syc': 'syc-TR', 'szl': 'szl-PL', 'ta': 'ta-IN', 'taq': 'taq-ML', 'te': 'te-IN', 'tet': 'tet-TL', 'tg': 'tg-TJ',
+        'th': 'th-TH', 'ti': 'ti-ET', 'tk': 'tk-TM', 'tkl': 'tkl-TK', 'tl': 'tl-PH', 'tmh': 'tmh-DZ', 'tn': 'tn-ZA',
+        'to': 'to-TO', 'tpi': 'tpi-PG', 'tr': 'tr-TR', 'trv': 'trv-TW', 'ts': 'ts-ZA', 'tsc': 'tsc-MZ', 'tt': 'tt-RU',
+        'tum': 'tum-MW', 'tvl': 'tvl-TV', 'tw': 'tw-GH', 'ty': 'ty-PF', 'tzm': 'tzm-MA', 'udm': 'udm-RU', 'ug': 'ug-CN',
+        'uk': 'uk-UA', 'umb': 'umb-AO', 'ur': 'ur-PK', 'uz': 'uz-UZ', 'uzn': 'uzn-UZ', 'vec': 'vec-IT', 'vi': 'vi-VN',
+        'vic': 'vic-US', 'vls': 'vls-BE', 'vmw': 'vmw-MZ', 'war': 'war-PH', 'wls': 'wls-WF', 'wo': 'wo-SN',
+        'xh': 'xh-ZA', 'ydd': 'ydd-US', 'yi': 'yi-YD', 'yo': 'yo-NG', 'zdj': 'zdj-KM', 'zh': 'zh-CN', 'zsm': 'zsm-MY',
+        'zu': 'zu-ZA',
+    }.items()}
 
     @classmethod
-    def from_tuple(cls, language: Tuple[str, str]) -> 'LanguageDirection':
-        warnings.warn("'from_tuple' is deprecated; pass source and target to the constructor instead.",
-                      DeprecationWarning, stacklevel=2)
-        if len(language) != 2:
-            raise ValueError(f"Language tuple must contain two elements, got {len(language)}")
-        return cls(*language)
+    def default_locale(cls, code: str) -> Optional[Language]:
+        """The default locale of the given language code, or None if it has none."""
+        return cls._DEFAULTS.get(code)
 
     @classmethod
-    def from_string(cls, string: str) -> 'LanguageDirection':
-        if string is None:
-            raise ValueError("Input string must not be None")
-        parts: List[str] = string.split('__')
-        if len(parts) != 2:
-            raise ValueError(f"Language direction string must contain two parts, got {len(parts)} in '{string}'")
-        return cls(source=Language.from_string(parts[0]), target=Language.from_string(parts[1]))
+    def name(cls, language: Language) -> Optional[str]:
+        """The English name of the given language, or None if unknown: "zh-TW" is "Traditional Chinese (Taiwan)"."""
+        if language.region is not None or language.script is not None:
+            key: str = f'{language.code}-{language.region or language.script}'
+            if key in cls._NAMES:
+                return cls._NAMES[key]
 
-    def is_equal_or_more_generic_than(self, other: 'LanguageDirection') -> bool:
-        return (self.source.is_equal_or_more_generic_than(other.source) and
-                self.target.is_equal_or_more_generic_than(other.target))
-
-    def is_language_only(self) -> bool:
-        return self.source.is_language_only() and self.target.is_language_only()
-
-    def as_language_only(self) -> 'LanguageDirection':
-        if self.is_language_only():
-            return self
-        return LanguageDirection(source=self.source.as_language_only(), target=self.target.as_language_only())
-
-    def to_tuple(self) -> Tuple[str, str]:
-        return self.to_json()
-
-    def to_json(self) -> Tuple[str, str]:
-        return self.source.tag, self.target.tag
-
-    def __eq__(self, other: object) -> bool:
-        if self is other:
-            return True
-        if not isinstance(other, LanguageDirection):
-            return False
-        return self.source == other.source and self.target == other.target
-
-    def __lt__(self, other: 'LanguageDirection') -> bool:
-        if not isinstance(other, LanguageDirection):
-            return NotImplemented
-        return (self.source, self.target) < (other.source, other.target)
-
-    def __hash__(self) -> int:
-        return hash((self.source, self.target))
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def __str__(self) -> str:
-        return f"{self.source}__{self.target}"
+        return cls._NAMES.get(language.code, None)

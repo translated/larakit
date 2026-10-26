@@ -18,7 +18,7 @@ pylint src                        # lint (max-line-length=120, .pylintrc)
 - **Private-file, public-symbol pattern**: implementation lives in `_`-prefixed modules (e.g. `_core.py`, `_lang.py`, `_tmx.py`). Symbols are re-exported via `__init__.py` star-imports. Always import from `larakit` or `larakit.corpus`, never from `larakit._core` etc.
 - **Version**: single-sourced in `src/larakit/__init__.py` as `__version__`, read dynamically by `pyproject.toml`.
 - **Namespace private keys**: use `_set_private(key, value)` for underscore-prefixed attrs; `set()` rejects them.
-- **Adding a language**: append to `Language._CODE_TO_NAME` in `src/larakit/_lang.py`.
+- **Adding a language**: append to `Languages._NAMES` in `src/larakit/_lang.py`.
 - **Adding a corpus format**: create `src/larakit/corpus/_<fmt>.py` implementing `MultilingualCorpus`, `TUReader`, `TUWriter` ABCs from `_base.py`, then add `from ._<fmt> import *` in `corpus/__init__.py`.
 
 ## Testing
