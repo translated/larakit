@@ -10,7 +10,8 @@ def main():
 
     sorted_tests = sorted(flat_tests, key=lambda test: test.__class__.__name__)
     suite = unittest.TestSuite(sorted_tests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    sys.exit(0 if result.wasSuccessful() else 1)
 
 
 if __name__ == "__main__":
