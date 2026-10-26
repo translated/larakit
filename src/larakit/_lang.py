@@ -1,3 +1,4 @@
+import unicodedata
 import warnings
 from typing import Optional, List, Tuple, Dict, Union
 
@@ -247,6 +248,34 @@ class Language:
     def _is_digit(string: str) -> bool:
         return all('0' <= c <= '9' for c in string)
 
+    # Non-ASCII characters visually identical to ASCII letters or separators: Cyrillic and Greek homoglyphs, dashes.
+    # Fullwidth forms are not here, as NFKC already folds them.
+    _CONFUSABLES = str.maketrans({
+        # Cyrillic
+        '\u0430': 'a', '\u0435': 'e', '\u043e': 'o', '\u0440': 'p', '\u0441': 'c', '\u0443': 'y', '\u0445': 'x',
+        '\u0456': 'i', '\u0458': 'j', '\u0455': 's', '\u04bb': 'h', '\u0501': 'd', '\u051b': 'q', '\u051d': 'w',
+        '\u0410': 'A', '\u0412': 'B', '\u0415': 'E', '\u041a': 'K', '\u041c': 'M', '\u041d': 'H', '\u041e': 'O',
+        '\u0420': 'P', '\u0421': 'C', '\u0422': 'T', '\u0425': 'X', '\u0406': 'I', '\u0408': 'J', '\u0405': 'S',
+        '\u04ae': 'Y', '\u051a': 'Q', '\u051c': 'W',
+        # Greek
+        '\u03bf': 'o', '\u0391': 'A', '\u0392': 'B', '\u0395': 'E', '\u0396': 'Z', '\u0397': 'H', '\u0399': 'I',
+        '\u039a': 'K', '\u039c': 'M', '\u039d': 'N', '\u039f': 'O', '\u03a1': 'P', '\u03a4': 'T', '\u03a5': 'Y',
+        '\u03a7': 'X',
+        # Dashes
+        '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u2013': '-', '\u2014': '-', '\u2212': '-',
+    })
+
+    @staticmethod
+    def _normalize(string: str) -> str:
+        """
+        Replaces '_' separators with '-', and non-ASCII characters that are visually identical to ASCII letters,
+        digits or separators (fullwidth forms, Cyrillic and Greek homoglyphs) with their ASCII counterpart.
+        Any other non-ASCII character is left untouched.
+        """
+        if not string.isascii():
+            string = unicodedata.normalize('NFKC', string).translate(Language._CONFUSABLES)
+        return string.replace('_', '-')
+
     @staticmethod
     def _parse_language(string: str) -> Optional[str]:
         if (len(string) == 2 or len(string) == 3) and Language._is_alpha(string):
@@ -280,7 +309,7 @@ class Language:
         tag_parts: List[str] = []
 
         skip: bool = False
-        chunks: List[str] = string.replace('_', '-').split('-')
+        chunks: List[str] = Language._normalize(string.strip()).split('-')
         for i, chunk in enumerate(chunks):
             if i == 0:
                 code = Language._parse_language(chunk)

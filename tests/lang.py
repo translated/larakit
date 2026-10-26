@@ -18,6 +18,21 @@ class TestLanguage(unittest.TestCase):
         sorted_tags = [language.tag for language in sorted(languages)]
         self.assertEqual(sorted_tags, ["de", "en", "en-US", "it", "zh-Hant"])
 
+    def test_from_string_confusable_characters(self):
+        # Cyrillic, fullwidth and dash lookalikes of "en-US"
+        for string in ("еn-US", "en-UЅ", "ｅｎ-ＵＳ", "en‑US", "en－US"):
+            language = Language.from_string(string)
+
+            self.assertEqual("en", language.code, msg=string)
+            self.assertEqual("US", language.region, msg=string)
+            self.assertEqual("en-US", language.tag, msg=string)
+
+        self.assertEqual("es-MX", Language.from_string("es-ΜΧ").tag)
+
+        language = Language.from_string("sr-Сyrl")
+        self.assertEqual("Cyrl", language.script)
+        self.assertEqual("sr-Cyrl", language.tag)
+
 
 class TestLanguageDirection(unittest.TestCase):
     def test_lt(self):
