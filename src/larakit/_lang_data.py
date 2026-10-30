@@ -286,7 +286,7 @@ _DEFAULT_LOCALE_TAGS: Dict[str, str] = {
     "et": "et-EE",
     "eu": "eu-ES",
     "fa": "fa-IR",
-    "ff": "ff-NG",
+    "ff": "ff-GN",
     "fi": "fi-FI",
     "fil": "fil-PH",
     "fj": "fj-FJ",
